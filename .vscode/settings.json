@@ -1,0 +1,10 @@
+{
+    "micropico.address": "COM12", 
+    "micropico.autoConnect": true,
+    "micropico.syncFolder": "glove",
+    "python.analysis.extraPaths": [
+        "./glove",
+        "./hand",
+        "./laptop"
+    ]
+}
