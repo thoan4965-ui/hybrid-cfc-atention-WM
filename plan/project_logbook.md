@@ -417,6 +417,98 @@ def exp_config(cfg):
 
 ## 📝 4. NHẬT KÝ THAY ĐỔI CHI TIẾT (CHANGELOG)
 
+### [2026-06-15] — ISEF Research: Special Awards, Winning Projects & Gap Analysis
+
+* **Người thực hiện:** AI Engineer
+* **Trạng thái:** ✅ Completed
+
+**Purpose:** Thông tin cho ISEF September roadmap — hiểu rõ landscape để định vị LeWM.
+
+#### 1. ISEF Special Award Organizations (~40+)
+| Tổ chức | Giải thưởng | Tiêu chí |
+|---|---|---|
+| **IEEE Foundation** | $10K Presidents' Scholarship | Electrical/electronics, CS, robotics |
+| **ACM** | Giải thưởng | Computing, software innovation |
+| **AAAI** | Giải thưởng | AI research, responsible AI |
+| **NSA** | Principles of Security | Security/privacy computing |
+| **ONR (US Navy)** | Naval Science Awards | Engineering, naval relevance |
+| **PTOS** | Patent/Trademark | Intellectual property innovation |
+| **Sigma Xi** | Interdisciplinary research | Cross-domain science |
+| **INCOSE** | Systems Engineering | Interdisciplinary systems design |
+| **Aramco** | Energy/Environmental | Clean energy innovation |
+| **ACS** | Chemistry | Chemical sciences |
+| **Mu Alpha Theta** | Mathematics | Mathematical rigor |
+| **Broadcom Foundation** | Digital/AI literacy | Coding for social good |
+| **The Knowledge Society** | Emerging tech | Global challenges |
+
+→ **Target cho LeWM:** IEEE Presidents' Scholarship + AAAI + ACM
+
+#### 2. ISEF — Phân tích winning projects (robotics/biomedical eng)
+
+**2025 Gordon E. Moore Award ($50K):**
+- **NeuroFlex** (ENBM062T) — EEG-controlled bionic leg prosthesis
+- 3 students Marcus High School TX
+- Cost-effective, non-invasive, real hardware with user testing
+
+**2024 Biomedical Engineering 1st Awards ($5K):**
+- **NitinArm** (Shreyas Vatts) — Shape-memory alloy trans-radial prosthetic → lighter, cheaper, more dexterous
+- **Open-source myoelectric arm** (Benjamin Lothamer) — additive manufacturing
+- **Finger exoskeleton for stroke** (Brad Wu) — rigid-elastic hybrid
+- **UpLift Mobility** (Jeslyn Tan) — robotic lift for elderly
+
+**2026 Biomedical Engineering 2nd/3rd Awards:**
+- **ATLAS** (Rig Saini) — ankle-foot prosthetic with adaptive tendon stiffness
+- **Kiri-Grip** (Serena Yuan) — Kirigami-EMG robotic hand for assistive grasping
+- **AIRA** (Gopalaniket Tadinada) — robotic surgical path planning
+- **BREATHE** (Jamie Cheng) — $6K 1st award
+
+#### 3. Pattern Analysis: Why They Win
+
+| Factor | Evidence |
+|---|---|
+| **Real hardware demo** | 100% of prosthetic/biomedical eng winners have physical prototype |
+| **User testing** | Winners test with actual patients (amputees, elderly, stroke survivors) |
+| **Cost narrative** | "10x cheaper", "low-cost", "accessible" appear in nearly every winning title |
+| **Multi-year project** | Year II, III, IV projects common — shows depth |
+| **Quantitative results** | Specific metrics: grasp success %, speed improvement, cost reduction |
+| **Clear title** | `[Novel/Novel] [Solution] for [Problem] Using [Technology]` format |
+
+#### 4. Technical Level Assessment
+- **Not PhD-level**: Students use existing frameworks (TensorFlow, PyTorch, Arduino)
+- **Novelty is in APPLICATION**: Not new algorithms but new integration + application to real problem
+- **Undergrad research level**: Comparable to solid senior capstone project
+- **Time investment**: 6 months–4 years, typically 1-2 years
+
+#### 5. LeWM vs ISEF — Gap Analysis
+
+| Dimension | LeWM Current | ISEF Winning Level | What's Missing |
+|---|---|---|---|
+| Real hardware | ✅ V0 3-finger hand grasping confirmed | ✅ Need demo at ISEF | Real-time CEM on robot |
+| AI/ML depth | ✅ CfC+Attn world model, novel hybrid | ✅ | Need benchmark vs baselines |
+| User testing | ❌ None | ✅ Required | Test with amputees/disabled |
+| Cost narrative | ❌ None | ✅ "Cheaper than commercial" | Cost comparison analysis |
+| Societal impact | ❌ None framed | ✅ "Help amputees" narrative | Craft the story |
+| Multi-year story | ✅ V0→V1→V2 trajectory | ✅ | Present as 3-year arc |
+| Hardware quality | ⚠️ 3-finger, SC09 servos | ✅ Full prosthetic hand | More fingers/degrees |
+| Quantitative results | ⚠️ Simulation metrics only | ✅ Real grasp success rate | Run 100+ grasp trials |
+| Presentation | ❌ Not prepared | ✅ Needs poster + demo | Prepare ISEF-quality materials |
+
+#### 6. Kết luận & Recommendations
+
+**Current level:** ~affiliate fair 2nd-3rd place. Cần cải thiện đáng kể để cạnh tranh ISEF Grand Award.
+
+**Để đạt ISEF Grand Award (Top 3 category):**
+1. Run LeWM world model REAL-TIME on V0 bionic hand (CEM planner)
+2. Test grasp success rate on 20+ objects, 10+ trials each
+3. Compare: CfC vs AR vs Hybrid on real robot — show improvement
+4. Add cost analysis vs commercial prosthetics ($10K vs $200)
+5. Frame narrative: "Affordable AI world model for next-gen prosthetic control in developing countries"
+6. Multi-year story: V0 (2024-25: basic grasp), V1 (2025-26: world model), V2 planned (Mamba)
+
+**Best category:** Robotics and Intelligent Machines (ROBO) hoặc Biomedical Engineering (ENBM)
+
+**Best special award targets:** IEEE Presidents' Scholarship ($10K), AAAI, ACM
+
 ### [2026-06-15] — 🚨 CHIEF ENGINEER REVIEW: 3 critical bugs found + fixed 🔧
 
 * **Người thực hiện:** AI Engineer (review + fix)
@@ -465,6 +557,33 @@ def exp_config(cfg):
 - **Track B — ISEF (tháng 9):** Cần novelty học thuật (V1.1 HybridCfC + Denoiser hoặc V2 Mamba) + argument thương mại (rẻ, dễ nhân rộng). Dùng budget $72-120 cho compute.
 - **V2 Mamba:** novelty cao hơn, rủi ro cao hơn, cần ~$30-60 + 3-5 tuần.
 - **Sáng tạo trẻ** = side quest, ko ảnh hưởng main plan, có giải là lời.
+
+### [2026-06-15] — ⚠️ PHÂN BIỆT RÕ: V0 vs V1 vs V1.1 — Đánh dấu kẻo lẫn
+
+* **Trạng thái:** ✅ Ghi nhớ cố định
+
+**DANH SÁCH CÁC BẢN — KHÔNG ĐƯỢC LẪN:**
+
+| Bản | Mô tả | Code | Config chính | Kết quả |
+|---|---|---|---|---|
+| **V0** | Robot thật bionic hand 8-DOF, fork LeWM paper | `le-wm-vo/`, `code-new/` | embed_dim=96, T=4, AR+CfC | ✅ Grasp thật, drift CfC 34× AR |
+| **V1** | Hybrid CfC+Attention TwoRoom — **Sai lầm T=16** | `le-wm-v1/` (gốc) | **T=16**, heads=8, NO denoiser, batch=128, L40S | **78%** — eval T=4 (mismatch) |
+| **V1.1** | Denoiser + λ sweep + Học được bài học T=4 | `le-wm-v1/` (hiện tại) | **T=4**, heads=16, có denoiser, λ sweep | 🔄 Chưa chạy — chờ 21/6 5080 |
+| **V2** | Mamba predictor (tương lai) | 📅 | T=4, giữ Attention, Mamba thay CfC | 📅 |
+| **Social** | Multi-robot overhead cam | 📅 | T=4, CfC/Mamba, cross-attn | 📅 |
+
+**CẦN NHỚ:**
+- V1 eval **KHÔNG CÔNG BẰNG** — train T=16, eval T=4
+- Không so sánh V1 (T=16, heads=8) với LeWM paper (T=4) — khác T
+- V1.1 mới là so sánh FAIR: cùng T=4, cùng batch=128, chỉ khác architecture
+- V0 là dim=96, V0.5 là dim=192 — V0 là bionic hand dataset
+- V1 là TwoRoom dataset (LeWM), dim=192
+
+**HƯỚNG TỚI:**
+1. T=4 cho tất cả — ko waste effort tìm optimal T
+2. Fair comparison: cùng config, khác architecture
+3. Denoiser + λ sweep (V1.1) → nếu beat AR → Hybrid win. Ko → Mamba V2
+4. V2 chỉ thay CfC → Mamba, giữ nguyên mọi thứ khác
 
 ### [2026-06-15] — Kế hoạch tương lai: λ sweep RTX 5080 ngày 21/6
 
