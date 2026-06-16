@@ -15,7 +15,7 @@ pip install stable-pretraining stable-worldmodel huggingface_hub hydra-core eino
 
 echo "=== Install Mamba-2 + causal-conv1d wheel ==="
 pip install https://github.com/state-spaces/mamba/releases/download/v2.3.1/mamba_ssm-2.3.1+cu12torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl --no-deps -q
-pip install https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.6.1/causal_conv1d-1.6.1+cu12torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl -q
+pip install https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.6.1.post4/causal_conv1d-1.6.1+cu12torch2.10cxx11abiTRUE-cp312-cp312-linux_x86_64.whl -q
 pip install einops -q
 
 echo "=== Verify ==="
