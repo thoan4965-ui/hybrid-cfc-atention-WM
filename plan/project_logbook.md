@@ -415,7 +415,46 @@ def exp_config(cfg):
 
 ---
 
+## 🔬 3b. NGHIÊN CỨU KIẾN TRÚC HYBRID MAMBA×ATTENTION
+
+Hoàn thành taxonomy đầy đủ ngày 2026-06-16. Chi tiết trong session log.
+
+**Tóm tắt 4 loại hybrid:**
+- **A. Inter-layer (sequential):** Jamba (1:7), NVIDIA (4 attn/56 layers), Zamba (shared), Samba (Mamba+SWA), Griffin (RG-LRU+local attn), Nemotron 3 (sparse attn+MoE)
+- **B. Intra-layer (parallel):** Hymba (head-wise split — ICLR 2025 Spotlight), TransMamba (sequence-level dynamic)
+- **C. Attention-as-retrieval:** MAD systematic study — optimal 25% attention, placement matters
+- **D. MoE+Mamba:** MoE-Mamba (2.35× faster), BlackMamba, Routing Mamba
+
+**Key insight cho V2:** Không paper nào dùng Mamba-3 trong hybrid — chúng ta sẽ là first. Tỉ lệ Attention 50% (1:1) độc đáo — literature dùng 7-25%.
+
+---
+
 ## 📝 4. NHẬT KÝ THAY ĐỔI CHI TIẾT (CHANGELOG)
+
+### [2026-06-16] — ISEF Deep Research: Comprehensive 3-Year Analysis + World Model Gap Confirmed
+
+* **Người thực hiện:** AI Engineer
+* **Trạng thái:** ✅ Completed
+
+**Scope:** 2024, 2025, 2026 ISEF Grand Awards — ROBO, SOFT, ENBM, ENEV, Top Awards. Vietnamese winners. World model/RL search.
+
+**Key Findings:**
+
+1. **Zero world model / model-based RL / robot manipulation projects** found at ISEF 2024-2026. LeWM's CfC+Attention hybrid world model is technically deeper than any ROBO 1st Award winner in AI/ML sophistication.
+
+2. **Winning pattern confirmed across 3 years:** Real hardware + user testing + cost narrative + multi-year trajectory > algorithmic novelty. NeuroFlex (2025, $50K) and Evan Budz's sea turtle (2026, $50K) exemplify this.
+
+3. **ROBO 1st Award winners (6 total across 3 years):** Mix of hardware (Lajciak swarm robots, Wilson cuddle chimp, Zheng wetland robot), software-AI (Efthimiadis skin cancer, Goyal MyoAssist), and physics-AI (Hua hyperspectral). NO world models.
+
+4. **ROBO category 2026 statistics:** 66 projects — 45.5% ML, 28.8% kinematics, 13.6% cognitive systems.
+
+5. **Vietnamese results:** Ceiling = 2nd Prize (never 1st). Best year 2025: 2 Second Prizes. No Vietnamese project involves world models, RL, or robot manipulation.
+
+6. **LeWM technical assessment:** AI/ML depth = 9/10 vs ISEF winners. Hardware demo = 2/10. User testing = 0/10. Cost narrative = 0/10.
+
+**Critical insight for planning:** LeWM is overqualified in theory but underqualified in application. For Sáng tạo trẻ (30/6): V0 grasp demo + V1.1 numbers = competitive for 2nd-3rd. For ISEF Sept: needs real-time CEM on robot + grasp statistics + user testing + cost narrative (~2-3 months prep).
+
+**Reference:** Full write-up at `plan/isef_research_2026_06_16.md`
 
 ### [2026-06-15] — ISEF Research: Special Awards, Winning Projects & Gap Analysis
 

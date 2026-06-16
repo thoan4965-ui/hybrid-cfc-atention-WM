@@ -1,10 +1,37 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "instructions": ["C:\\Users\\duong\\.config\\opencode\\AGENTS.md"],
+  "skills": {
+    "paths": [
+      "C:\\Users\\duong\\.config\\opencode\\skills\\logbook-manager",
+      "C:\\Users\\duong\\.config\\opencode\\skills\\master-verification"
+    ]
+  },
   "mcp": {
     "memory": {
       "type": "local",
       "command": ["cmd", "/c", "npx", "-y", "@modelcontextprotocol/server-memory"],
       "enabled": true
+    },
+    "kaggle-mcp": {
+      "type": "local",
+      "command": "uvx",
+      "args": ["kaggle-mcp-server"],
+      "env": {
+        "KAGGLE_API_TOKEN": "KGAT_32f7cf4762781234337ae0380e03c"
+      },
+      "enabled": true
+    },
+    "colab-mcp": {
+      "type": "local",
+      "command": ["uvx", "git+https://github.com/googlecolab/colab-mcp"],
+      "timeout": 30000,
+      "enabled": true
+    },
+    "fetch": {
+      "type": "local",
+      "command": ["uvx", "mcp-server-fetch"],
+      "enabled": true
     }
-  },
+  }
 }

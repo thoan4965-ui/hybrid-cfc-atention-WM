@@ -11,8 +11,8 @@
 
 ## Project Scale
 - **V0:** 1 bionic hand 8-DOF real, grasp confirmed (REAL ROBOT — duy nhất)
-- **V1:** Hybrid CfC+Attention TwoRoom (15.5M, T=4, heads=8) — 78% — **SIMULATION**
-- **V1.1:** Denoiser + λ sweep + heads=16 + T=4 (Colab T4) — **SIMULATION**
+- **V1:** Hybrid CfC+Attention TwoRoom — **78%** (T=16, heads=8 — sai lầm, đáng lẽ T=4)
+- **V1.1:** Denoiser + λ sweep + heads=16 + **T=4** (Colab T4) — fix sai lầm V1
 - **V2:** Mamba predictor — **SIMULATION** (future)
 - **Social T1:** 1 overhead cam, joint latent, 2×SO-ARM100 (MuJoCo) — **SIMULATION**
 - **Social T2:** 3 cam (overhead + 2 ego), cross-attn — **SIMULATION**
@@ -47,6 +47,12 @@ Social T2 [11-12/2026] 3 cam (overhead + 2 ego), cross-attn
 - Config hiện tại: backbone_units=384 → CfC=764K, Attention=787K → ratio ≈ 0.97:1 ≈ 1:1 ✅
 - Nếu V2 Mamba thay CfC: giữ tỉ lệ params tương đương CfC cũ
 
+## ⚡ CHỐT CỨNG — V2.1 dùng Mamba-2 (ko phải Mamba-3)
+- Mamba-2 có wheel cho mọi CUDA 12-13 → `pip install mamba-ssm` 30 giây, ko build
+- Với T=4, Mamba-2 ≈ Mamba-3 về chất lượng
+- d_state=64 đủ cho tất cả task kể cả Social T=16-32
+- Mamba-3 code giữ trong module.py để tham khảo, upgrade sau nếu cần
+
 ## V1 Plan chốt
 - **Arch:** 6×{Self-Attn(AdaLN) → CfC(ODE)}, ~15.5M params
   - Attention: 28% predictor params (2.36M), Softmax (ko Linear), heads=8, dim_head=64
@@ -70,7 +76,7 @@ Social T2 [11-12/2026] 3 cam (overhead + 2 ego), cross-attn
 1. ✅ HybridCfCPredictor implemented
 2. ✅ Config đồng bộ (seed, bf16, num_workers, lr)
 3. ✅ Resume flow + HF upload (đã fix 3 critical bugs)
-4. ✅ V1.1 λ=0.01 đang chạy Colab
+4. 🔄 V1.1 λ sweep — chờ budget 21/6 RTX 5080
 5. 🔄 Báo cáo Sáng tạo trẻ (30/6) — V1.1 λ sweep + V0 real robot
 6. 📅 V2 Mamba+Attention — fair comp vs CfC+Attn vs AR (T=4)
 7. 📅 Push-T, Cube, Reacher — tất cả T=4
@@ -108,6 +114,19 @@ Social T2 [11-12/2026] 3 cam (overhead + 2 ego), cross-attn
 - #60: Colab fix bug → chạy clean. T4 free cho V1.1 λ sweep. Vast/Kaggle khi có budget.
 - **Ko waste effort tìm optimal T cho từng architecture.**
 - **Mọi architecture dùng T=4, batch=128.**
+- **Ko thay đổi T trong cùng 1 experiment — train T=16 eval T=4 = mismatch.**
+
+## ⚠️ RULES NGHIÊM NGẶT (từ bug đã fix)
+1. **Resume**: Dùng `glob *.ckpt`, không hardcode filename — Lightning đặt tên khác `epoch_{idx}.ckpt`
+2. **HF upload**: Dùng `{subdir}/{run_name}/ep_{epoch}` — không hardcode, không env var
+3. **Hidden state**: `_carry_mode=True` cho rollout, `False` cho train/val — phân biệt rõ
+4. **Eval seed**: Tất cả task dùng `seed=3072` — đồng bộ với train seed
+5. **Precision**: Luôn ghi precision vào config — bf16 trên GPU hỗ trợ, fp16 trên T4
+6. **Checkpoint**: Mỗi epoch upload .pt + .ckpt lên HF — dùng path đúng từ đầu
+7. **Dead params**: Kiểm tra config flow — `cfc_units` chạy 4 class ko dùng đến CfC
+8. **Denoiser dim**: Phải configurable — không hardcode 192
+9. **GitHub token**: Token hết hạn → push fail. Dùng token mới, hoặc SSH.
+10. **HF token**: Token hết hạn → upload fail. Check hạn trước khi launch.
 
 ## Budget & Tài nguyên
 - Tuần: 150-250k VND (~$6-10)
@@ -118,3 +137,10 @@ Social T2 [11-12/2026] 3 cam (overhead + 2 ego), cross-attn
 - **Hiện tại: ko budget, dùng Colab/Kaggle free.**
 - **Sáng tạo trẻ 30/6:** V0 + V1.1 λ sweep, Colab free.
 - **ISEF tháng 9:** cần budget (~$72-120) cho V2 benchmark.
+
+## Work Protocol
+- **Output sau mỗi tool call** — tao báo real-time: đang làm gì, kết quả, bước tiếp theo
+- **Ko dùng sub-agent code** — tao code + report trực tiếp
+- Hermes Agent (qua MCP) cho research, web search (khi setup xong)
+- Mày nói "dừng" → tao stop ngay, ko thinking
+- Mày là manager — tao executor + reporter
