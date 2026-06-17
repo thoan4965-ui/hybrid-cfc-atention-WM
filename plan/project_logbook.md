@@ -329,6 +329,8 @@ def exp_config(cfg):
 
 ## 🔬 3. LỊCH SỬ PHÁN QUYẾT KIỂM THỬ THỰC TẾ (TEST VERDICTS)
 
+> **Ghi chú:** Tất cả test dưới đây đều từ **V0 pipeline (bionic hand robot thật)**. Trước đây ghi nhầm là V1. CfC ở đây là CfC-V4 trên V0, ko phải Hybrid (V1).
+
 ### Short Rollout (3-step, multi-seed 400×3)
 
 | Model | Config | Rollout | Gap vs AR | Ghi chú |
@@ -455,6 +457,13 @@ Hoàn thành taxonomy đầy đủ ngày 2026-06-16. Chi tiết trong session lo
 | **Dependencies** | torch 2.10.0+cu128, transformers 5.12.1 | CUDA 12.8 |
 
 ## 📝 4. NHẬT KÝ THAY ĐỔI CHI TIẾT (CHANGELOG)
+
+### [2026-06-17] — Fix nhầm lẫn V0 vs V1 trong §3 Test Verdicts
+
+* **Người thực hiện:** AI Engineer
+* **Trạng thái:** ✅ Completed
+* **Sửa:** Thêm ghi chú đầu §3: tất cả T1-T4 test là từ **V0 (robot)** chứ ko phải V1 (sim). Trước đây ghi nhầm gây lẫn lộn.
+* **Ảnh hưởng:** Báo cáo §4.5 ablation table sẽ ghi đúng "V0 pipeline test", ko ghi "V1".
 
 ### [2026-06-17] — Fix reproducibility seed + config Option C
 
