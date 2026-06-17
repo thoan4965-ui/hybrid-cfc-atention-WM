@@ -89,6 +89,10 @@ Trước khi kết thúc phiên, tự kiểm tra:
 - Có thay đổi code/kiến trúc/quyết định nào cần logbook changelog không?
 - Có lỗi/sai lầm nào mới phát hiện cần thêm rule không?
 
+### 3. Per-task Done Gate (xem precision-agent SKILL.md §Bước 4)
+Sau mỗi task con, chạy gate: rules → pillars → research → git → logbook → clarity.
+Thiếu 1 trong 6 = ko báo done, quay lại sửa.
+
 ### 3. Pre-install checklist (trước mọi `pip install`)
 - `python -c "import torch; print(torch.__version__, torch.version.cuda)"`
 - Check wheel có sẵn ko (check release page trước)
