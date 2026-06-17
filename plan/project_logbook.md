@@ -434,6 +434,16 @@ Hoàn thành taxonomy đầy đủ ngày 2026-06-16. Chi tiết trong session lo
 
 ## 📝 4. NHẬT KÝ THAY ĐỔI CHI TIẾT (CHANGELOG)
 
+### [2026-06-17] — Fix reproducibility seed + config Option C
+
+* **Người thực hiện:** AI Engineer
+* **Trạng thái:** ✅ Completed
+
+**Công việc:**
+1. **Seed fix:** thêm `pl.seed_everything(cfg.seed)` vào `train.py` — trước đó stable-pretraining Manager ko đọc seed từ config, weight init + dropout + CUDA ops ngẫu nhiên mỗi lần chạy. Ảnh hưởng: reproducibility cho paper.
+2. **Config Option C:** heads=16, d_state=256, expand=4, depth=6 → predictor 9.36M (≈ AR 10.6M), tỉ lệ Attention:Mamba ≈ 1.43:1. Train lại từ epoch 0 trên Vast.
+3. **Thêm expand param** vào module.py (Mamba2Predictor → Mamba2Transformer → Mamba2ConditionalBlock) để configurable từ YAML.
+
 ### [2026-06-17] — HF upload fix try/except + rules nhấn mạnh
 
 * **Người thực hiện:** AI Engineer
