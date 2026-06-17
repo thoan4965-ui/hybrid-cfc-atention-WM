@@ -61,6 +61,8 @@ Mọi kết luận phải đủ: **Lý thuyết (Theory) + Paper/Data + Thực n
 11. **🔥 Kiểm tra format support trước dùng function.** `swm.data.load_dataset` chỉ hỗ trợ `lance, folder, lerobot, video`. HDF5 cần `hdf5plugin` + `HDF5Dataset` trực tiếp. Ko tin docs mù quáng — check source code.
 12. **🔥 Đủ 3 pillars (Theory + Paper + Empirical) cho mọi kết luận.** Thiếu 1 → ghi "chưa biết". Ko suy diễn, ko bịa.
 13. **🔥 Eval config đúng LeWM paper: mọi task budget=50, goal_offset=25.** TwoRoom từng để sai 150/100 vì ko đọc paper kỹ. Budget 50 × frameskip 5 = 250 env steps — đủ cho TwoRoom. Chỉ tăng nếu benchmark chứng minh thiếu.
+14. **🔥 Wrapper try/except cho mọi I/O (network, file, HF, disk).** `api.upload_file` crash training epoch 0 vì token hết hạn. Training ko được dừng vì lỗi phụ. In warning, log error, continue.
+15. **🔥 Kiểm tra token/dịch vụ trước khi dùng.** HF token hết hạn → 401. Kiểm tra `api.whoami()` trước session, ko đợi lúc runtime mới biết.
 
 ## Budget
 - Vast RTX 5080: $0.175/h (đang dùng)

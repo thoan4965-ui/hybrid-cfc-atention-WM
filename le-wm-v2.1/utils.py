@@ -80,10 +80,11 @@ class SaveCkptCallback(Callback):
         api = HfApi(token=hf_token)
 
         base = f"checkpoints/{self.subdir}/{self.run_name}/ep_{epoch}"
-
-        # Upload .pt
         pt_path = self.run_dir / f"weights_epoch_{epoch}.pt"
-        if pt_path.exists():
+        if not pt_path.exists():
+            return
+
+        try:
             api.upload_file(
                 path_or_fileobj=str(pt_path),
                 path_in_repo=f"{base}/weights_epoch_{epoch}.pt",
@@ -92,13 +93,15 @@ class SaveCkptCallback(Callback):
             )
             print(f"✅ Uploaded .pt ep{epoch}")
 
-        # Upload .ckpt (lấy file mới nhất)
-        for ckpt in sorted(self.run_dir.glob("*.ckpt"), reverse=True):
-            api.upload_file(
-                path_or_fileobj=str(ckpt),
-                path_in_repo=f"{base}/weights.ckpt",
-                repo_id="hhian/checkpoints",
-                repo_type="model",
-            )
-            print(f"✅ Uploaded .ckpt ep{epoch}")
-            break
+            for ckpt in sorted(self.run_dir.glob("*.ckpt"), reverse=True):
+                api.upload_file(
+                    path_or_fileobj=str(ckpt),
+                    path_in_repo=f"{base}/weights.ckpt",
+                    repo_id="hhian/checkpoints",
+                    repo_type="model",
+                )
+                print(f"✅ Uploaded .ckpt ep{epoch}")
+                break
+        except Exception as e:
+            print(f"⚠️ HF upload fail ep{epoch}: {e}")
+            print("   Training continues. Fix token/repo later.")

@@ -434,6 +434,18 @@ Hoàn thành taxonomy đầy đủ ngày 2026-06-16. Chi tiết trong session lo
 
 ## 📝 4. NHẬT KÝ THAY ĐỔI CHI TIẾT (CHANGELOG)
 
+### [2026-06-17] — HF upload fix try/except + rules nhấn mạnh
+
+* **Người thực hiện:** AI Engineer
+* **Trạng thái:** ✅ Completed
+
+**Công việc đã làm:**
+1. **Fix HF upload crash training:** `_upload_to_hf` wrap try/except — nếu token hết hạn hoặc repo lỗi → in warning, training tiếp tục.
+2. **Tạo repo `hhian/checkpoints`** trên HF — token mới, verify thành công.
+3. **Nhấn mạnh rules** — thêm rule #15 (ko bỏ qua try/except cho I/O).
+
+**Bài học:** `api.upload_file` crash toàn bộ training khi token hết hạn. Mọi I/O (network, disk, HF) phải wrap try/except — training ko được dừng vì lỗi phụ.
+
 ### [2026-06-17] — V2.1 setup Vast + dataset fix + rules cleanup
 
 * **Sửa lỗi eval config TwoRoom:** budget=150, goal=100 → **budget=50, goal=25** theo đúng LeWM paper (mọi task budget=50, goal_offset=25). Sai sót do đọc lướt paper — ghi vào rule #13. **⚠️ Ảnh hưởng:** budget 50 × frameskip 5 = 250 env steps — vẫn đủ cho TwoRoom navigation. Nếu thiếu, sau đó mới tăng.
