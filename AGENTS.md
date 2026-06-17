@@ -23,11 +23,12 @@ Mọi kết luận phải đủ: **Lý thuyết (Theory) + Paper/Data + Thực n
 - Trước mỗi kết luận: đủ 3 pillars chưa? Nếu chưa → báo thiếu
 
 ## Project Scale
-- **V0 [done]:** 1 bionic hand 8-DOF real, grasp confirmed
-- **V1 [abandoned]:** Hybrid CfC+Attention TwoRoom — 78% (T=16 sai lầm, đáng lẽ T=4)
-- **V2.1 [active]:** Mamba-2+Attention predictor, TwoRoom (đang train trên Vast)
-- **Social T1 [future]:** 1 overhead cam, joint latent, 2×SO-ARM100 (MuJoCo)
-- **Social T2 [future]:** 3 cam (overhead + 2 ego), cross-attn
+- **V0 [done]:** 1 bionic hand 8-DOF real (robot data tự xây), grasp confirmed
+- **V1 [abandoned]:** Hybrid CfC+Attention TwoRoom — 78% (T=16 sai)
+- **V2.1 [active]:** Mamba-2+Attention predictor, TwoRoom (train Vast)
+- **V3 (Social) [future]:** Overhead cam, 1 agent, 2 robot
+- **V3.1 [future]:** Overhead + 2 ego, 2 agent, 2 robot
+- **V3.2 [future]:** 2 ego, 2 agent, 2 robot
 
 ## V2.1 Architecture
 - **6×{Self-Attn(AdaLN) → Mamba-2}**, T=4, heads=16, d_state=256, expand=4

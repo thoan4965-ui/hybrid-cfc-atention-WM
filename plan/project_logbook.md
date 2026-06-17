@@ -1,7 +1,13 @@
 # 📓 NHẬT KÝ LÀM VIỆC CHUNG (PROJECT LOGBOOK)
 > **Dự án:** LeWM — World Model cho robot manipulation
 > **Mục tiêu:** World model cho robotic manipulation — so sánh CfC (ODE-RNN) vs AR (Transformer) vs Hybrid CfC+Attention
-> **Lưu ý:** V0 là phase duy nhất có real robot (bionic hand). V1, S1, S2, S3 đều là **simulation** (TwoRoom / Push-T / Cube / Reacher / MuJoCo 2×SO-ARM100).
+> **Phiên bản thống nhất:**
+> - **V0** — robot thật (bionic hand 8-DOF, data tự xây)
+> - **V1** — Hybrid CfC+Attention, TwoRoom simulation (abandoned)
+> - **V2.1** — Mamba-2+Attention, TwoRoom (active)
+> - **V3 (Social)** — Overhead cam, 1 agent, 2 robot
+> - **V3.1** — Overhead + 2 ego, 2 agent, 2 robot
+> - **V3.2** — 2 ego, 2 agent, 2 robot
 
 ---
 
