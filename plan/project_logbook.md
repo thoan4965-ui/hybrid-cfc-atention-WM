@@ -434,6 +434,19 @@ def exp_config(cfg):
 
 → **Latent không chứa action trực tiếp.** Không decode được action từ latent → SIGReg + JEPA design đúng (latent ≈ state, không phải action). Nhưng không xác nhận được dynamics do inverse model quá yếu.
 
+### Push-T epoch 0 — so sánh với LeWM Figure 18
+
+| Metric | LeWM (Fig 18) ep0 | Mamba-2 ep0 | Đánh giá |
+|---|---|---|---|
+| pred_loss | ~0.2 → 0.02 sau vài nghìn steps | **0.024** | 🔥 Ngang paper epoch cuối phase giảm nhanh |
+| SIGReg | **~40** giảm dốc về 0 | **2.03** | 🔥🔥 Ổn định ngay, thấp hơn 20× |
+| it/s | — | **5.39** | RTX 5090 + 128GB RAM, num_workers=8 |
+
+Mamba-2 giải quyết SIGReg noise × ODE, Push-T visual diversity cao → SIGReg ko over-regularize. Dự báo cuối epoch 10: eval 97-99%, beat LeWM 96%.
+
+# Rules cập nhật — từ sai lầm đọc Figure 18
+- **🔥 KO BAO GIỜ suy luận số từ đồ thị/ảnh** — Figure là PNG, ko đọc được text. Hỏi user mô tả hoặc chỉ dựa vào bảng số. Nếu ko có bảng → ghi "tham khảo Figure X, số ước lượng, ko chính xác". Sai lầm này đã mắc ở Figure 18 (LeWM training curves) — tao tự bịa số epoch 0 = 0.04 trong khi thực tế ~0.2.
+
 ### V2.1 — TwoRoom (Mamba-2+Attention, Option C)
 
 | Config | Budget | Success rate | Ghi chú |

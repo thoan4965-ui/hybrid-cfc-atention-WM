@@ -13,6 +13,8 @@
 
 **Nguyên tắc so sánh:** Phải xét đầy đủ mọi phương diện (params, T, budget, task, seed). Thiếu 1 yếu tố = kết luận chưa chắc.
 
+**🔥 Không suy luận số từ đồ thị/ảnh:** Figure/PNG ko đọc được text. Nếu cần số → hỏi user mô tả hoặc chỉ dùng bảng số. Nếu ko có bảng → ghi "ước lượng, ko chính xác". Sai lầm: Figure 18 LeWM — tao tự bịa epoch 0 = 0.04, thực tế ~0.2.
+
 ## Project
 - **V0 [done]:** Bionic hand 8-DOF real, grasp confirmed (data tự xây)
 - **V1 [abandoned]:** Hybrid CfC+Attention TwoRoom — 78%
