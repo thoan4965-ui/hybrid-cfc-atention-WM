@@ -346,6 +346,25 @@ def exp_config(cfg):
 - **V2.1 [next]:** Push-T + Cube + Reacher — cần train thêm
 - **V3 [plan]:** Social overhead cam — sau V2.1
 
+### 📚 Tham khảo lý thuyết — Loss functions + JEPA variants
+
+| Paper | Link | Liên quan |
+|---|---|---|
+| **Huber Loss** (Huber 1964) | Gốc robust statistics | Smooth L1 trong Fast R-CNN — thay MSE chống outlier |
+| **Fast R-CNN** (Girshick 2015) | https://arxiv.org/abs/1504.08083 | Ứng dụng Smooth L1 (Huber) vào bounding box regression |
+| **World Models** (Ha & Schmidhuber 2018) | https://arxiv.org/abs/1803.10122 | MDN + NLL cho multimodal future prediction, nền tảng cho Social |
+| **MDN** (Bishop 1994) | Mixture Density Networks | Output nhiều Gauss thay vì 1 điểm |
+| **VJEPA** (Bardes et al. 2026) | https://arxiv.org/abs/2601.14354 | JEPA dùng NLL + KL thay MSE — ủng hộ lý thuyết cho MDN+JEPA |
+| **Var-JEPA** (2026) | https://arxiv.org/abs/2603.20111 | Variational formulation của JEPA, mở đường cho probabilistic |
+| **SD-JEPA** (05/2026) | https://arxiv.org/abs/2605.31111 | Chứng minh multiple regularizers có thể compose additive ko xung đột |
+| **PiJEPA** (03/2026) | https://arxiv.org/abs/2603.25981 | CLIP + JEPA cho language-conditioned navigation |
+| **VLA-JEPA** (02/2026) | https://arxiv.org/abs/2602.10098 | VLM + JEPA + action cho robot |
+| **ThinkJEPA** (03/2026) | https://arxiv.org/abs/2603.22281 | VLM guide JEPA predictor với semantic cues |
+| **Causal-JEPA** (02/2026) | https://arxiv.org/abs/2602.11389 | Object-centric JEPA với masking |
+| **PLDM** (Sobal 2025) | LeWM paper §4 so sánh | VICReg 7 losses, mạnh TwoRoom nhưng yếu Push-T do unstable |
+| **gym-so100** | https://pypi.org/project/gym-so100/ | **Social task có sẵn**: TransferCubeTask — 2 robot chuyền cube |
+| **MambaLite-Micro** (2025) | https://arxiv.org/abs/2509.05488 | Mamba trên MCU, INT4 khả thi |
+
 ### Key Insights
 - CfC là RNN/ODE: nhận 1 frame + hidden state, predict 1 frame. Ko copy AR's batch predict.
 - Phase 1 build hidden state từ history, Phase 2 predict future — hidden state CARRY xuyên suốt
@@ -513,6 +532,13 @@ Hoàn thành taxonomy đầy đủ ngày 2026-06-16. Chi tiết trong session lo
 - Push-T và Cube cần train tiếp để đánh giá đầy đủ
 - Chi phí: ~$0.55 (3h10 Vast RTX 5080)
 - **Phát hiện chính:** Mamba-2 discrete state giải quyết noise tích lũy qua ODE. Hybrid stateful predictor trong JEPA WM lần đầu tiên confirmed.
+
+### [2026-06-18] — Arduino CLI + sketch 4 servo PWM WASD
+- Cài arduino-cli v1.1.1 tại `D:\4doff\arduino-cli\`
+- Viết sketch `4servo_wasd.ino` cho Arduino Uno
+- PWM pins: D3, D5, D6, D9
+- W=S1, S=S2, A=S3, D=S4 (toggle 0°/180°), SPACE=center all
+- Compile OK: 3472 bytes (10%)
 
 ### [2026-06-16] — ISEF Deep Research: Comprehensive 3-Year Analysis + World Model Gap Confirmed
 
