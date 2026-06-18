@@ -522,6 +522,12 @@ Hoàn thành taxonomy đầy đủ ngày 2026-06-16. Chi tiết trong session lo
 
 > Chi tiết từng commit = `git log --oneline`. Dưới đây là tổng kết phase.
 
+### 18/06/2026 — Push-T: fix dataset + deps + bắt đầu train
+
+- Fix config pusht.yaml: name `.lance` → `.h5` (giống TwoRoom)
+- Thêm dependencies: `hdf5plugin`, `pygame`, `pymunk` vào requirements + vast_run.sh
+- Lesson: **lỗi lặp lại từ TwoRoom** — quên check dataset format + env dependencies trước khi chạy. Cần thêm deterministic pre-check cho mỗi task mới.
+
 ### Phase: V2.1 train + eval TwoRoom (17/06/2026)
 
 - Train 10 epochs, Option C (heads=16, d_state=256, expand=4)
