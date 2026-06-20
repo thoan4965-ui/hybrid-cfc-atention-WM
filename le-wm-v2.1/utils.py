@@ -84,6 +84,10 @@ class SaveCkptCallback(Callback):
         if not pt_path.exists():
             return
 
+        cache_home = os.environ.get("STABLEWM_HOME", str(Path.home() / ".stable_worldmodel"))
+        ckpt_dir = Path(cache_home) / "checkpoints" / self.run_name
+        config_path = ckpt_dir / "config.json"
+
         try:
             api.upload_file(
                 path_or_fileobj=str(pt_path),
@@ -92,6 +96,15 @@ class SaveCkptCallback(Callback):
                 repo_type="model",
             )
             print(f"✅ Uploaded .pt ep{epoch}")
+
+            if config_path.exists():
+                api.upload_file(
+                    path_or_fileobj=str(config_path),
+                    path_in_repo=f"{base}/config.json",
+                    repo_id="hhian/checkpoints",
+                    repo_type="model",
+                )
+                print(f"✅ Uploaded config.json ep{epoch}")
 
             for ckpt in sorted(self.run_dir.glob("*.ckpt"), reverse=True):
                 api.upload_file(

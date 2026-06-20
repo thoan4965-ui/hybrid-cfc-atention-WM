@@ -17,3 +17,6 @@ le-wm/
 plan/
 AGENTS.md
 opencode.json
+outputs/
+*.log
+*.ckpt
