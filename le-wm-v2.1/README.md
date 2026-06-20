@@ -20,6 +20,14 @@ uv pip install --system https://github.com/state-spaces/mamba/releases/download/
 pip install stable-pretraining stable-worldmodel shapely hdf5plugin pymunk hydra-core huggingface_hub
 ```
 
+## Checkpoints & Data
+
+HuggingFace: [hhian/checkpoints](https://huggingface.co/hhian/checkpoints)
+
+- `checkpoints/pusht/pusht/ep_10/` — Push-T (epoch 10, best checkpoint)
+- `checkpoints/hybrid_mamba_tworoom/ep_10/` — TwoRoom Mamba (epoch 10, best checkpoint)
+- `checkpoints/hybrid_cfc_tworoom/ep_10/` — TwoRoom CfC (epoch 10, best checkpoint)
+
 ## Eval Push-T
 
 ```bash

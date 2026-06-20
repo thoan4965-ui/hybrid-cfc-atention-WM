@@ -25,6 +25,8 @@ Hybrid block-level JEPA predictor cho robot manipulation. Thay MLP (LeWM AR) b�
 
 HuggingFace: [hhian/checkpoints](https://huggingface.co/hhian/checkpoints)
 
+Checkpoint epoch 10 là phiên bản cuối và tốt nhất cho tất cả các mô hình (Push-T, TwoRoom Mamba, TwoRoom CfC).
+
 ## Tham khảo
 
 LeWorldModel (Maes et al. 2026) — baseline AR predictor.
