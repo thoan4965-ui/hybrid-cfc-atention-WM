@@ -52,13 +52,14 @@ def run(n_gen=200, pop_size=128, seed=3072):
             ex_raw[:, 37:38]        # energy [can be up to 20]
         ], axis=1)                   # total: 10 dim
 
-        ae = train_ae(ae, ae_input, random.PRNGKey(g + 1000))
+        skip_ae = float(jnp.mean(f)) < 5.
+        if not skip_ae:
+            ae = train_ae(ae, ae_input, random.PRNGKey(g + 1000))
         nt = vmap(lambda e: encode(ae, e))(ae_input)
         all_dec = vmap(lambda e: decode(ae, encode(ae, e)))(ae_input)
         per_loss = jnp.mean((ae_input - all_dec) ** 2, axis=1)
-        dopamine = per_loss / (jnp.max(per_loss) + 1e-8)
-        skip_dopa = jnp.where(jnp.any(jnp.isnan(dopamine)), 1., 0.)
-        f_total = jnp.where(skip_dopa, f, f + 50 * dopamine)
+        dopamine = jnp.where(skip_ae, 0., per_loss / (jnp.max(per_loss) + 1e-8))
+        f_total = f + 50 * dopamine
         ae_loss = jnp.mean(per_loss)
 
         curve.append((float(jnp.max(f_total)), float(jnp.mean(f_total))))

@@ -13,7 +13,7 @@ def decode(p, z): return z @ p['Wd'] + p['bd']
 @jit
 def train_ae(p, d, key, lr=0.001, steps=30):
     d = jnp.where(jnp.isnan(d), 0., d)
-    dm = jnp.mean(d); ds = jnp.std(d) + 1e-8; dn = (d - dm) / ds
+    dm = jnp.mean(d); ds = jnp.std(d) + 1e-3; dn = (d - dm) / ds; dn = jnp.clip(dn, -3., 3.)
     def loss(p):
         z = jnp.tanh(dn @ p['We'] + p['be']); recon = z @ p['Wd'] + p['bd']
         return jnp.mean((dn - recon) ** 2) + 1e-3 * (jnp.sum(p['We']**2) + jnp.sum(p['Wd']**2))
