@@ -15,7 +15,7 @@ pol = genome_to_policy(jnp.array(data['best_nodes']), jnp.array(data['best_conns
 @jit
 def rollout(pol, key):
     def step(s, _):
-        s2 = env.step(s, policy_forward(pol, s.obs))
+        a, _ = policy_forward(pol, s.obs); s2 = env.step(s, a)
         return s2, (s2.pipeline_state, s2.info['food_pos'], s2.info['food_cnt'])
     _, (states, fps, fcs) = lax.scan(step, env.reset(key), jnp.arange(N_FRAMES))
     return states, fps, fcs

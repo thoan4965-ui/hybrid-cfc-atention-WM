@@ -1,4 +1,4 @@
-"""Genome + JIT mutate (scan) + vmap crossover + Tag."""
+"""Genome + JIT mutate (scan) + vmap crossover + Tag + Dopamine (2nd genome)."""
 import jax, jax.numpy as jnp
 from jax import random, jit, vmap, lax
 
@@ -78,3 +78,16 @@ def crossover_innov(child_n, child_c, p1n, p1c, p2n, p2c, fit1, fit2, key):
                    jnp.where(o1[:, None], jnp.where(sf, p1c[i1], jnp.nan),
                              jnp.where(o2[:, None], jnp.where(1-sf, p2c[i2], jnp.nan), child_c)))
     return cn, cc
+
+# === Dopamine — 2nd genome (3 floats per agent) ===
+def init_dopas(key, pop_size):
+    return random.normal(key, (pop_size, 3)) * 0.5
+
+@jit
+def mutate_dopas(dopas, key, noise=0.3):
+    return dopas + noise * random.normal(key, dopas.shape)
+
+@jit
+def crossover_dopas(d1, d2, key):
+    pick = random.bernoulli(key, shape=(3,))
+    return jnp.where(pick, d1, d2)
