@@ -27,6 +27,7 @@ class NoRewardAnt(ant.Ant):
                        'food_pos': fp,
                        'food_cnt': jnp.full((self._n_food,), 1.),
                        'step': jnp.full((), 0.)})
+        s = s.replace(obs=jnp.concatenate([s.obs, jnp.zeros(2)]))
         return s
 
     def step(self, state, action):
