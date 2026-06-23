@@ -185,8 +185,13 @@ def run(n_gen=200, pop_size=128, seed=3072, resume_path=None):
         kk = random.split(random.fold_in(k0, ri), pop_size)
         ff, _, _ = eval_batch(state['nodes'], state['conns'], kk)
         ffs.append(ff)
-    ff = jnp.mean(jnp.stack(ffs), axis=0)
+    ff = jnp.nan_to_num(jnp.mean(jnp.stack(ffs), axis=0), nan=0.)
     bi = int(jnp.argmax(ff))
-    print(f"Best: {float(jnp.max(ff)):.0f}", flush=True)
+    print(f"Best steps (raw): {float(jnp.max(ff)):.0f}", flush=True)
+    os.makedirs("v2_6/results", exist_ok=True)
+    np.savez('v2_6/results/v29_final.npz',
+        curve=np.array(curve), best_nodes=np.array(state['nodes'][bi]),
+        best_conns=np.array(state['conns'][bi]), best_fitness=float(jnp.max(ff)),
+        best_total_fitness=float(curve[-1][0]))
     return {'curve': jnp.array(curve), 'best_nodes': state['nodes'][bi],
             'best_conns': state['conns'][bi], 'best_fitness': float(jnp.max(ff))}
