@@ -14,7 +14,7 @@ def init_pop(key, pop_size=128):
             nodes = nodes.at[i, j].set(jnp.array([float(innov), 0, -1.+j, -1.+j, 0., 1., 1., float(j)]))
             innov += 1
         for j in range(2):
-            conns = conns.at[i, j].set(jnp.array([float(innov), float(j), float(j+1), 0.5, 1., 1., 0., 0.]))
+            conns = conns.at[i, j].set(jnp.array([float(innov), float(j), float(j+1), 0.5, 1., 1., float(j), 0.]))
             innov += 1
     return {'nodes': nodes, 'conns': conns, 'tags': tags, 'innov': innov, 'pop_size': pop_size}
 
@@ -51,6 +51,7 @@ def mutate(nodes, conns, key, innov_start, subst=0.1, ins=0.03, dele=0.02):
         sc = random.randint(k3, (), 0, jnp.maximum(ca, 1).astype(jnp.int32))
         nc = jnp.where(jnp.arange(CONN_PARAMS) == 0, (innov + 1).astype(jnp.float32), cc[sc])
         nc = jnp.where(jnp.arange(CONN_PARAMS) == 3, nc[3] + random.normal(k4, ()) * 0.1, nc)
+        nc = nc.at[6].set(nn[src, 7])
         cc = jnp.where(do_ins & (jnp.arange(MAX_GENES) == ca)[:, None], nc[None, :], cc)
         added = do_ins * 2
         ca_fix = jnp.maximum(ca - 1, 0)
