@@ -3917,29 +3917,19 @@ Các bước implement V2.6 v1, mỗi bước hoàn thành trong 1-2 ngày:
 - **Skill mới:** meta-generalizer — consensus gate (bàn đủ → user OK → execute) + auto-generalize patterns + skill registry mapping 13 skills
 - **Workflow-manager extended:** thêm skill registry table, debug-pipeline, generalize-pipeline
 - **Cognitive-auditor updated:** auto-trigger sau mỗi code change
-- **Code-discipline restructured:** loop Research → Code step-by-step → Audit → loop. Mỗi phase gọi skills tương ứng (doc-reader, websearch, research-paper, research-debug, cognitive-auditor, master-verification, logbook-manager)
-- ⏳ **23/06 — Phase 3c (Hebbian + Mechanism X):** Hook vào main loop. Hebbian trong eval_batch step (policy update mỗi step). Mechanism X modifier subst/ins/dele. G20 mean=116, mx=0.898, ae=0.1316. Đang chạy 200 gen ~27 phút.
-- **23/06 — Phase 3c done:** 200 gen × 128 pop, 22.4 phút. mean=110, max=125 (giới hạn đứng yên). Xác nhận: KHÔNG con nào tìm được đồ ăn do thiết kế vòng tròn random góc — kiến chết hết năng lượng trước khi chạm đồ.
-- **23/06 — Phase 3d:** Thêm food sensor (dx,dy) vào obs (27→29). CPPN input 28→30. AE 35→37. Multi-eval (3 lần/gen, fitness = trung bình). Code push lên GitHub.
-- **23/06 — Skill mới:** git-push-safe — stage+commit+push an toàn, kiểm soát staged files, cấm file lạ (tools/, data_train/, ...).
-- **23/06 — Skill mới:** big-picture-checker — list tree + phân loại file trước mọi hành động.
-- **23/06 — Preflight protocol tích hợp:** code-discipline (pre-phase), cognitive-auditor (pre-mode), research-debug (2 attempts trigger), AGENTS.md. Tất cả skills global đã đồng bộ.
-- **23/06 — QUYẾT ĐỊNH THIẾT KẾ (Design Decision):** Tag = hành vi (action) + kết quả (fitness) + năng lượng (energy) + học trong đời (Hebbian). **Raw sensor (dx,dy) KHÔNG vào tag** — chỉ hệ quả của môi trường (fitness, energy) mới vào. Lý do sinh học: epigenome ghi "stress, đói, no" (kết quả nội tại), không ghi "tọa độ đồ ăn". Implementation: AE input = obs_body(27) + action(8) + fitness(1) + energy_final(1) = 37 chiều (giữ nguyên dim nhưng nội dung khác — bỏ dx,dy thay bằng fitness+energy).
-- **23/06 —QUYẾT ĐỊNH THIẾT KẾ (Design Decision):** CPPN-based AE khả thi lý thuyết (HyperNEAT 2009 + Weight Agnostic NN 2019 + NeRF 2020). Không làm cho V2.6, để dành V2.7 khi sensor thay đổi thường xuyên.
-- **23/06 — DESIGN V2.6 CHỐT CỨNG (ko đổi nữa):**
-  - Tag = AE(action(8) + fitness(1) + energy(1)) = **10→16→10 cố định.** KO gồm obs_body, sensor, environment.
-  - Fitness = steps_alive — **universal constant, ko đổi qua V2.7/V2.8/V2.9.**
-  - Dopamine hiện tại = AE loss (prediction error). V2.7+ CPPN tự quyết định dopamine weights.
-  - CPPN-AE: **KHÔNG cần** vì AE dim cố định 10.
-  - Sensor/Body/Prediction = CPPN mở rộng (thêm tọa độ substrate) — gen cũ tự sinh trọng số mới.
-  - Mọi thứ khác (Hebbian, Mechanism X, Lamarckian) giữ nguyên.
-- **23/06 — Lộ trình V2.9 (Predictive Coding):** System 1 (Hebbian) + System 2 (Gradient). Policy thêm prediction head. Gradient chạy khi pred error cao. Threshold do CPPN quyết định qua dopamine weights. Chi tiết bàn sau.
-- **23/06 — END OF DAY: V2.9 hoàn chỉnh code.**
-  - **Kiến trúc:** 4 cơ chế song song: GA (topology) + Gradient (world model) + Hebbian (online adaptation) + Dopamine (meta — 3 số từ CPPN: w_grad, w_hebb, w_ga).
-  - **JIT hóa:** mutate qua lax.scan, crossover qua vmap — 1 GPU call, ko Python loop.
-  - **Bug đã fix:** hebbian_update trả thiếu w_pred/w_dopa (mất gradient + dopamine sau step 1) — critical.
-  - **Mechanism X bỏ:** mr = w_ga (dopamine[2]) quyết định mutation rate. Gen tự tiến hóa "tính cách đột biến."
-  - **File:** 7 py files, ~419 total lines. Tất cả đồng bộ trên GitHub.
-  - **Triết lý:** Fitness = steps_alive + AE_loss (survival + curiosity). Ko reward. Ko tay người.
-  - **Kết quả kỳ vọng:** Hội tụ nhanh hơn V2.6 ~10× nhờ gradient, dopamine giúp diversity nhờ w_ga kiểm soát mutation rate. Chờ chạy Colab.
+- **Code-discipline restructured:** loop Research → Code step-by-step → Audit → loop. Mỗi phase gọi skills tương ứng.
+- **24/06 — V2.9 (C+A) HOÀN CHỈNH:**
+  - **Kiến trúc:** 4 cơ chế song song + dopamine điều phối.
+  - **GA** (topology) + **Gradient** (world model — prediction error backprop) + **Hebbian** (online adaptation) + **Dopamine** (3 số meta: w_grad, w_hebb, w_ga).
+  - **JIT hóa:** mutate = lax.scan, crossover = vmap, eval = @jit. Ko Python loop.
+  - **2-genome dopamine:** 3 số tiến hóa riêng (genome phụ), softmax khuếch đại khác biệt.
+  - **AE 10→16→10 cố định:** action + fitness + energy. Ko gồm sensor/environment.
+  - **AE normalize fix:** normalize ae_input trước encode/decode — khớp với train_ae.
+  - **Fitness:** steps_alive + 50 × AE_loss_norm. Survival + curiosity. Ko reward.
+  - **6 bugs đã fix:** float/int trong JIT, hebbian return thiếu, AE normalize mismatch, render tuple, checkpoint backward, expression.py dead.
+  - **7 files:** ae.py(24), cppn.py(52), env_ant.py(56), genome.py(93), hebbian.py(13), render_video.py(55), main.py(215). Tổng ~508 dòng.
+  - **Checkpoint HF:** auto mỗi 500 gen → hhian/checkpoints. Resume tự động.
+- **24/06 — V2.9 test:** 40 gen × 128 pop. Dopamine phân hóa G20: 0.12/0.67/0.21 (gradient thấp, hebbian cao, GA thấp). Fitness 76. AE loss giảm dần.
+- **24/06 — SKILLS (17 global):** agent-manager, code-discipline, cognitive-auditor, meta-generalizer, research-debug, research-paper, master-verification, paper-linker, theory-emergence-toolkit, logbook-manager, doc-reader, workflow-manager, big-picture-checker, git-push-safe, precision-agent + customize-opencode.
+- **24/06 — Lộ trình:** V2.9 → V3 social (camera overhead + multi-agent) — sauu khi V2.9 hoàn tất.
 
