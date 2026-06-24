@@ -56,7 +56,7 @@ def eval_batch(nodes, conns, dopas, keys):
         fd = jnp.argmax(d > 0.5)
         alive = jnp.where(jnp.any(d > 0.5), fd + 1., 500.)
         final_energy = jnp.nan_to_num(s_final.info['energy'], nan=0.)
-        dopa = pol['w_dopa']
+        dopa = jnp.nan_to_num(pol['w_dopa'], 0.)
         return (alive, dopa), jnp.concatenate([alive[None], final_energy[None], jnp.mean(ex, 0)])
     (alive_arr, dopa_arr), r = vmap(single)(nodes, conns, dopas, keys)
     return alive_arr, dopa_arr, r
@@ -139,7 +139,7 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None):
             f_arr, d_arr, r = eval_batch(state['nodes'], state['conns'], state['dopas'], kk)
             fs.append(f_arr); dopas.append(d_arr); rs.append(r)
         f = jnp.nan_to_num(f_arr, nan=0.)
-        dopa_mean = jnp.mean(jnp.stack(dopas), axis=(0,1))
+        dopa_mean = jnp.nan_to_num(jnp.mean(jnp.stack(dopas), axis=(0,1)), nan=0.)
         r = rs[0]
         final_e = jnp.nan_to_num(r[:, 1], nan=0.) if r.ndim > 1 else jnp.zeros(pop_size)
         ex_raw = r[:, 2:] if r.ndim > 1 and r.shape[1] > 2 else jnp.zeros((pop_size, 37))
@@ -150,7 +150,7 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None):
         ae = train_ae(ae, ae_input, random.PRNGKey(g + 1000))
         dm_ae = jnp.mean(ae_input); ds_ae = jnp.std(ae_input) + 1e-3
         ae_norm = jnp.clip((ae_input - dm_ae) / ds_ae, -3., 3.)
-        nt = vmap(lambda e: encode(ae, e))(ae_norm)
+        nt = jnp.nan_to_num(vmap(lambda e: encode(ae, e))(ae_norm), nan=0.)
         all_dec = vmap(lambda e: decode(ae, encode(ae, e)))(ae_norm)
         per_loss = jnp.mean((ae_norm - all_dec) ** 2, axis=1)
         dopamine = (per_loss - jnp.min(per_loss)) / (jnp.max(per_loss) - jnp.min(per_loss) + 1e-8)
