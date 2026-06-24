@@ -36,6 +36,7 @@ def _sub():
 
 SI, SH, SP, SD = _sub()
 
+@jit
 def genome_to_policy(nodes, conns):
     """Modular: all nodes visible, only connections per module."""
     has_mod = nodes.shape[-1] >= 8
@@ -48,13 +49,10 @@ def genome_to_policy(nodes, conns):
             mc = jnp.where(mask_c[:, None], conns, jnp.nan)
         else:
             mc = conns
-        w_dopa_mod = cppn_query(base_nodes, mc, SD)
-        n_conn = jnp.sum(~jnp.isnan(mc[:, 0]))
-        jax.debug.print("[mod {}] conns={} w_dopa={} nan={}", mod, n_conn, w_dopa_mod, jnp.any(jnp.isnan(w_dopa_mod)))
         w_ih += cppn_query(base_nodes, mc, SI).reshape(30, 10)
         w_ho += cppn_query(base_nodes, mc, SH).reshape(10, 8)
         w_pred += cppn_query(base_nodes, mc, SP).reshape(10, 29)
-        w_dopa += w_dopa_mod
+        w_dopa += cppn_query(base_nodes, mc, SD)
     return {'w_ih': w_ih / 8, 'w_ho': w_ho / 8, 'w_pred': w_pred / 8, 'w_dopa': w_dopa / 8}
 
 def policy_forward(params, obs):

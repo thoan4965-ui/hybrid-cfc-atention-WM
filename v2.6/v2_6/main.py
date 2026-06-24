@@ -26,6 +26,7 @@ def eval_batch(nodes, conns, dopas, keys):
             pol, s = ps
             a, pred_n = policy_forward(pol, s.obs)
             s2 = env.step(s, a)
+            s2 = s2.replace(obs=jnp.nan_to_num(s2.obs, 0.))
 
             temp = 1 + jnp.abs(pol['w_dopa'][3]) * 2
             wg, wh, wa = jax.nn.softmax(pol['w_dopa'][:3] * temp)
