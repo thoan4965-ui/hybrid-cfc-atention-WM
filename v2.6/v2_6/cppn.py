@@ -46,15 +46,15 @@ def genome_to_policy(nodes, conns):
         if has_mod:
             mask_n = ~jnp.isnan(nodes[:, 0]) & (nodes[:, 6] == mod)
             mask_c = ~jnp.isnan(conns[:, 0]) & (conns[:, 6] == mod) & (conns[:, 4] > 0.5)
+            mn = jnp.where(mask_n[:, None], nodes[..., :7], jnp.nan)
+            mc = jnp.where(mask_c[:, None], conns, jnp.nan)
         else:
-            mask_n = ~jnp.isnan(nodes[:, 0])
-            mask_c = ~jnp.isnan(conns[:, 0]) & (conns[:, 4] > 0.5)
-        mn = jnp.where(mask_n[:, None], nodes[..., :7], jnp.nan)
-        mc = jnp.where(mask_c[:, None], conns, jnp.nan)
+            mn = nodes[..., :7]; mc = conns
+        w_dopa_mod = cppn_query(mn, mc, SD)
         w_ih += cppn_query(mn, mc, SI).reshape(30, 10)
         w_ho += cppn_query(mn, mc, SH).reshape(10, 8)
         w_pred += cppn_query(mn, mc, SP).reshape(10, 29)
-        w_dopa += cppn_query(mn, mc, SD)
+        w_dopa += w_dopa_mod
     return {'w_ih': w_ih / 8, 'w_ho': w_ho / 8, 'w_pred': w_pred / 8, 'w_dopa': w_dopa / 8}
 
 def policy_forward(params, obs):

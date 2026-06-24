@@ -117,6 +117,12 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None):
         state['dopas'] = init_dopas(ga_key, pop_size)
         ae = init_ae(ae_key)
         gen_start = 0; curve = []
+        pol_test = genome_to_policy(state['nodes'][0], state['conns'][0])
+        print(f"DEBUG NaN — w_ih:{bool(jnp.any(jnp.isnan(pol_test['w_ih'])))}"
+              f" w_dopa:{bool(jnp.any(jnp.isnan(pol_test['w_dopa'])))}"
+              f" w_pred:{bool(jnp.any(jnp.isnan(pol_test['w_pred'])))}"
+              f" w_ho:{bool(jnp.any(jnp.isnan(pol_test['w_ho'])))}", flush=True)
+        print(f"DEBUG w_dopa val: {pol_test['w_dopa']}", flush=True)
         n4 = vmap(lambda i: random.PRNGKey(i))(jnp.arange(4))
         f4, _, _ = eval_batch(state['nodes'][:4], state['conns'][:4], state['dopas'][:4], n4)
         print(f"V2.9.1: {n_gen}gen x {pop_size}pop", flush=True)
