@@ -112,6 +112,7 @@ def run(n_gen=200, pop_size=128, seed=3072, resume_path=None):
         print(f"V2.9+C+A: {n_gen}gen x {pop_size}pop", flush=True)
 
     t0 = time.time()
+    k0 = random.PRNGKey(gen_start * 3)
     for g in range(gen_start, n_gen):
         k0 = random.PRNGKey(g * 3)
         fs, dopas, rs = [], [], []
