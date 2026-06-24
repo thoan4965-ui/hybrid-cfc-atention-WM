@@ -87,7 +87,7 @@ def download_latest_hf(api, repo_id, dest="."):
     except:
         return None
 
-def run(n_gen=200, pop_size=128, seed=3072, resume_path=None):
+def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None):
     key = random.PRNGKey(seed)
     hf_api = None
     try:
@@ -116,13 +116,13 @@ def run(n_gen=200, pop_size=128, seed=3072, resume_path=None):
     for g in range(gen_start, n_gen):
         k0 = random.PRNGKey(g * 3)
         fs, dopas, rs = [], [], []
-        for ri in range(3):
+        for ri in range(1):
             kk = random.split(random.fold_in(k0, ri), pop_size)
             f_arr, d_arr, r = eval_batch(state['nodes'], state['conns'], state['dopas'], kk)
             fs.append(f_arr); dopas.append(d_arr); rs.append(r)
-        f = jnp.nan_to_num(jnp.mean(jnp.stack(fs), axis=0), nan=0.)
+        f = jnp.nan_to_num(f_arr, nan=0.)
         dopa_mean = jnp.mean(jnp.stack(dopas), axis=(0,1))
-        r = jnp.mean(jnp.stack(rs), axis=0)
+        r = rs[0]
         final_e = jnp.nan_to_num(r[:, 1], nan=0.) if r.ndim > 1 else jnp.zeros(pop_size)
         ex_raw = r[:, 2:] if r.ndim > 1 and r.shape[1] > 2 else jnp.zeros((pop_size, 37))
 
@@ -205,11 +205,11 @@ def run(n_gen=200, pop_size=128, seed=3072, resume_path=None):
             save_checkpoint(state, ae, g+1, curve, cp_path, hf_api, "hhian/checkpoints")
 
     ffs = []
-    for ri in range(3):
+    for ri in range(1):
         kk = random.split(random.fold_in(k0, ri), pop_size)
         ff, _, _ = eval_batch(state['nodes'], state['conns'], state['dopas'], kk)
         ffs.append(ff)
-    ff = jnp.nan_to_num(jnp.mean(jnp.stack(ffs), axis=0), nan=0.)
+    ff = jnp.nan_to_num(ff, nan=0.)
     bi = int(jnp.argmax(ff))
     print(f"Best steps (raw): {float(jnp.max(ff)):.0f}", flush=True)
     os.makedirs("v2_6/results", exist_ok=True)
