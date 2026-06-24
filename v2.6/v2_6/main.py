@@ -40,6 +40,8 @@ def eval_batch(nodes, conns, dopas, keys):
             pol['w_ih'] = pol['w_ih'] - lr_grad * w_grad * jnp.clip(g_ih, -1., 1.)
             pol['w_pred'] = pol['w_pred'] - lr_grad * w_grad * jnp.clip(g_pred, -1., 1.)
 
+            for k in pol: pol[k] = jnp.nan_to_num(pol[k], 0.)
+
             pol['w_dopa'] = jnp.array([w_grad, w_hebb, w_ga, temp, lr_grad * 1000])
 
             return (pol, s2), (s2.done, jnp.concatenate([s.obs, a, s2.info['energy'][None]]))
