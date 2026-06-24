@@ -137,11 +137,11 @@ def run(n_gen=200, pop_size=128, seed=3072, resume_path=None):
             nt = vmap(lambda e: encode(ae, e))(ae_norm)
             all_dec = vmap(lambda e: decode(ae, encode(ae, e)))(ae_norm)
             per_loss = jnp.mean((ae_norm - all_dec) ** 2, axis=1)
-            dopamine = per_loss / (jnp.max(per_loss) + 1e-8)
+            dopamine = (per_loss - jnp.min(per_loss)) / (jnp.max(per_loss) - jnp.min(per_loss) + 1e-8)
             ae_loss = jnp.mean(per_loss)
         else:
             nt = jnp.zeros((pop_size, TAG_DIM)); dopamine = jnp.zeros(pop_size); ae_loss = 0.
-        f_total = f + 50 * dopamine
+        f_total = f + 20 * dopamine
         curve.append((float(jnp.max(f_total)), float(jnp.mean(f_total))))
 
         w_ga = float(dopa_mean[2])
