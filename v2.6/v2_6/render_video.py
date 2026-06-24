@@ -1,5 +1,5 @@
-"""Render video with food overlay — ko ảnh hưởng train."""
-import os, time
+"""Render video with food overlay — flexible path, checkpoint or result."""
+import os, time, sys
 os.environ['MUJOCO_GL'] = 'glx'; os.environ['DISPLAY'] = ':99'
 from v2_6.main import env, genome_to_policy, policy_forward
 import jax, jax.numpy as jnp, numpy as np, mediapy as media
@@ -7,10 +7,15 @@ from jax import lax, jit
 import mujoco, mujoco.mjx as mjx
 from PIL import Image, ImageDraw
 
-DATA_PATH = 'v26_phase3e.npz'; N_FRAMES = 200; W = 320; H = 240
+DATA_PATH = sys.argv[1] if len(sys.argv) > 1 else 'v2_6/results/v29_0624_1500.npz'
+N_FRAMES = 200; W = 320; H = 240
 
 data = np.load(DATA_PATH, allow_pickle=True)
-pol = genome_to_policy(jnp.array(data['best_nodes']), jnp.array(data['best_conns']))
+if 'best_nodes' in data:
+    n, c = data['best_nodes'], data['best_conns']
+else:
+    n, c = data['nodes'][0], data['conns'][0]
+pol = genome_to_policy(jnp.array(n), jnp.array(c))
 
 @jit
 def rollout(pol, key):
