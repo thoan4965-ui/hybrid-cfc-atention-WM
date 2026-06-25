@@ -99,7 +99,7 @@ def make_eval_batch(flag_spatial=False, flag_planning=False, flag_diag=False, fl
                 pol['w_ih'] = pol['w_ih'] - lr_grad * w_grad * jnp.clip(g_ih, -1., 1.)
                 pol['w_pred'] = pol['w_pred'] - lr_grad * w_grad * jnp.clip(g_pred, -1., 1.)
 
-                for k in pol: pol[k] = jnp.nan_to_num(pol[k], 0.)
+                for key in pol: pol[key] = jnp.nan_to_num(pol[key], 0.)
                 pol['w_dopa'] = jnp.array([w_grad, w_hebb, w_ga, 0., 0.])
 
                 # Planning: fixed B_MAX×L_MAX with masking
@@ -298,17 +298,18 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None, vip_init=None,
             pol_e = genome_to_policy(state['nodes'][bi], state['conns'][bi], regs=state['regs'][bi])
             elite_data = (pol_e['w_ih'], elite_fitness)
 
-        # Self-diagnosis: adjust mutation rate
+        # Self-diagnosis: adjust mutation rate (per-gen: use gen 0 params as scalar)
         if flag_diag:
-            monitor_window = int(50 + 150 * jax.nn.sigmoid(state['diags'][:, 0]))
-            anomaly_threshold = 1.5 + 1.5 * jax.nn.sigmoid(state['diags'][:, 1])
-            reflect_interval = int(50 + 450 * jax.nn.sigmoid(state['diags'][:, 2]))
+            diag_0 = state['diags'][0]  # shape (3,) — use first agent's params as representative
+            monitor_window = int(50 + 150 * float(jax.nn.sigmoid(diag_0[0])))
+            anomaly_threshold = 1.5 + 1.5 * float(jax.nn.sigmoid(diag_0[1]))
+            reflect_interval = int(50 + 450 * float(jax.nn.sigmoid(diag_0[2])))
             if g % reflect_interval == 0 and g > 0:
                 # compare current ae_loss to historical mean
                 hist_mean = jnp.mean(jnp.array([c[1] for c in curve[-monitor_window:]]))
-                if ae_loss > hist_mean + anomaly_threshold[0] * hist_mean:
+                if ae_loss > hist_mean + anomaly_threshold * hist_mean:
                     mr = float(jnp.clip(dopa_mean[2], 0.05, 1.0)) * 1.2  # explore
-                elif ae_loss < hist_mean - anomaly_threshold[0] * hist_mean:
+                elif ae_loss < hist_mean - anomaly_threshold * hist_mean:
                     mr = float(jnp.clip(dopa_mean[2], 0.05, 1.0)) * 0.9  # exploit
                 else:
                     mr = float(jnp.clip(dopa_mean[2], 0.05, 1.0))
