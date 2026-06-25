@@ -3859,6 +3859,17 @@ Các bước implement V2.6 v1, mỗi bước hoàn thành trong 1-2 ngày:
 
 Mỗi bug gồm: triệu chứng → root cause → fix. Dùng để tra cứu khi gặp lại.
 
+### Chưa làm — kế hoạch tiếp theo
+
+**Tổng quát hóa kinh nghiệm V2.9.x thành global skills:**
+
+1. **Global hóa 3 skills:** `master-verification`, `logbook-manager`, `research-paper-protocol` — từ LeWM-specific → global
+2. **Inject Engineering Discipline** (JAX, shape, flags, genome, cross-gen state) vào 6 global skills: `code-discipline`, `cognitive-auditor`, `precision-agent`, `big-picture-checker`, `research-debug-protocol`, `meta-generalizer`
+3. **Populate Engineering Discipline** vào 9 project-specific skills (tham khảo)
+4. **Teacher production chạy** — sau khi fix xong skill, quay lại chạy teacher w=0.2 + 3 runs
+
+**Hiện tại:** V2.9.x code complete, tested 12 cells pass. Teacher curiosity w=0.20 ready. Cần generalize skill trước khi chạy production để áp dụng lessons cho mọi dự án sau.
+
 ### JIT & LAX.SCAN
 
 | # | Bug | Root cause | Fix | File:Line |
