@@ -1,4 +1,4 @@
-"""CPPN: policy + prediction + modular (8 modules) + dopamine + regulatory + spatial encoding."""
+"""CPPN: policy + prediction + modular (8 modules) + dopamine + regulatory + spatial + thought projections."""
 import jax, jax.numpy as jnp
 from jax import lax, vmap, jit
 
@@ -21,30 +21,53 @@ def cppn_query(nodes, conns, coords):
     return vmap(eval_one)(coords)
 
 def _sub():
-    no=30; nh=10; na=8; np_obs=29
-    ih=jnp.zeros((no*nh,4)); ho=jnp.zeros((nh*na,4))
+    no=30; nh=10; na=8; np_obs=29; n_spat=46; n_thought=16
+    SIH = no * nh; SPAT = 46 * nh; THOUGHT = 16 * nh  # spatial + thought projections
+    coords = jnp.zeros((SIH + SPAT + THOUGHT + nh*na + nh*np_obs + 3, 4))
+    idx = 0
+    # ih (obs → hidden) 30×10 = 300
     for i in range(no):
-        for h in range(nh): ih=ih.at[i*nh+h].set(jnp.array([i/no*2-1,-1.,h/nh*2-1,0.]))
+        for h in range(nh):
+            coords = coords.at[idx].set(jnp.array([i/no*2-1, -1., h/nh*2-1, 0.]))
+            idx += 1
+    # spatial_proj (46 → 10) = 460
+    for s in range(n_spat):
+        for h in range(nh):
+            coords = coords.at[idx].set(jnp.array([s/n_spat*2-1, -2., h/nh*2-1, 3.]))
+            idx += 1
+    # thought_proj (16 → 10) = 160
+    for t in range(n_thought):
+        for h in range(nh):
+            coords = coords.at[idx].set(jnp.array([t/n_thought*2-1, -3., h/nh*2-1, 4.]))
+            idx += 1
+    # ho (hidden → action) 10×8 = 80
     for h in range(nh):
-        for o in range(na): ho=ho.at[h*na+o].set(jnp.array([h/nh*2-1,0.,o/na*2-1,1.]))
-    pred=jnp.zeros((nh*np_obs,4))
+        for o in range(na):
+            coords = coords.at[idx].set(jnp.array([h/nh*2-1, 0., o/na*2-1, 1.]))
+            idx += 1
+    # pred (hidden → pred_obs) 10×29 = 290
     for h in range(nh):
-        for p in range(np_obs): pred=pred.at[h*np_obs+p].set(jnp.array([h/nh*2-1,1.,p/np_obs*2-1,2.]))
-    dopa=jnp.zeros((3,4))
-    for d in range(3): dopa=dopa.at[d].set(jnp.array([d/3*2-1,-2.,0.,3.]))
-    return ih, ho, pred, dopa
+        for p in range(np_obs):
+            coords = coords.at[idx].set(jnp.array([h/nh*2-1, 1., p/np_obs*2-1, 2.]))
+            idx += 1
+    # dopa 3
+    for d in range(3):
+        coords = coords.at[idx].set(jnp.array([d/3*2-1, -2., 0., 3.]))
+        idx += 1
+    return coords, SIH, SPAT, THOUGHT
 
-SI, SH, SP, SD = _sub()
+COORDS, SI_H, SI_SPAT, SI_THOUGHT = _sub()
+SI_H_END = SI_H
+SI_SPAT_END = SI_H + SI_SPAT
+SI_THOUGHT_END = SI_H + SI_SPAT + SI_THOUGHT
 
 def grid_encoding(x, y, scale=1.0):
-    """Grid cell encoding from (x,y). 3 orientations × 10 phases = 30 dim."""
     ang = jnp.array([0., jnp.pi/3, 2*jnp.pi/3])[:, None]
     ph_x = x * jnp.cos(ang) * scale
     ph_y = y * jnp.sin(ang) * scale
     return jnp.sin(ph_x + ph_y).ravel()
 
 def place_encoding(x, y, n_places=16):
-    """Simple place cell encoding. 16 fixed grid positions."""
     xs = jnp.linspace(-20., 20., 4)
     ys = jnp.linspace(-20., 20., 4)
     gx, gy = jnp.meshgrid(xs, ys)
@@ -52,18 +75,21 @@ def place_encoding(x, y, n_places=16):
     return jnp.exp(-d / (2 * 4.**2))
 
 def spatial_encoding(x, y, scale=1.0):
-    """Combined grid + place encoding: 30 + 16 = 46 dim."""
-    return jnp.concatenate([grid_encoding(x, y, scale),
-                            place_encoding(x, y)])
+    return jnp.concatenate([grid_encoding(x, y, scale), place_encoding(x, y)])
 
 @jit
 def genome_to_policy(nodes, conns, regs=None):
-    """Modular: all nodes visible, only connections per module.
-       regs (16,): first 8 = module enable bits (sigmoid > 0.5 = on).
-       JIT-safe: uses jnp.where for gating, no Python if on traced arrays."""
+    """Modular CPPN with support for spatial + thought projections."""
+    # Handle both 2D (per-agent) and 3D (batched) inputs
+    if nodes.ndim == 3:
+        nodes = nodes[0]
+        conns = conns[0]
+
     has_mod = nodes.shape[-1] >= 8
+    n_ih = 30 * 10; n_spat = 46 * 10; n_thought = 16 * 10
     w_ih = jnp.zeros((30, 10)); w_ho = jnp.zeros((10, 8))
     w_pred = jnp.zeros((10, 29)); w_dopa = jnp.zeros(3)
+    w_spat = jnp.zeros((46, 10)); w_thought = jnp.zeros((16, 10))
     base_nodes = nodes[..., :7]
 
     if regs is not None:
@@ -80,16 +106,25 @@ def genome_to_policy(nodes, conns, regs=None):
         else:
             mc = conns
         mod_on = module_on[mod]
-        w_ih += mod_on * cppn_query(base_nodes, mc, SI).reshape(30, 10)
-        w_ho += mod_on * cppn_query(base_nodes, mc, SH).reshape(10, 8)
-        w_pred += mod_on * cppn_query(base_nodes, mc, SP).reshape(10, 29)
-        w_dopa += mod_on * cppn_query(base_nodes, mc, SD)
+        out = cppn_query(base_nodes, mc, COORDS)
+        w_ih += mod_on * out[:SI_H_END].reshape(30, 10)
+        w_spat += mod_on * out[SI_H_END:SI_SPAT_END].reshape(46, 10)
+        w_thought += mod_on * out[SI_SPAT_END:SI_THOUGHT_END].reshape(16, 10)
+        w_ho += mod_on * out[SI_THOUGHT_END:SI_THOUGHT_END + 80].reshape(10, 8)
+        w_pred += mod_on * out[SI_THOUGHT_END + 80:SI_THOUGHT_END + 80 + 290].reshape(10, 29)
+        w_dopa += mod_on * out[SI_THOUGHT_END + 80 + 290:].reshape(3)
     return {'w_ih': w_ih / n_active, 'w_ho': w_ho / n_active,
-            'w_pred': w_pred / n_active, 'w_dopa': w_dopa / n_active}
+            'w_pred': w_pred / n_active, 'w_dopa': w_dopa / n_active,
+            'w_spat': w_spat / n_active, 'w_thought': w_thought / n_active}
 
 @jit
-def policy_forward(params, obs):
+def policy_forward(params, obs, spat_enc=None, thought_state=None):
     h = jnp.tanh(obs @ params['w_ih'][:-1] + params['w_ih'][-1])
+    if spat_enc is not None:
+        h = h + spat_enc @ params['w_spat']
+    if thought_state is not None:
+        h = h + thought_state @ params['w_thought']
+    h = jnp.tanh(h)
     action = jnp.tanh(h @ params['w_ho'])
     pred_next = h @ params['w_pred']
     return action, pred_next

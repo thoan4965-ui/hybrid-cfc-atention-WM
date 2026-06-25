@@ -6,16 +6,19 @@ from v2_6.cppn import genome_to_policy
 from v2_6.genome import init_pop, MAX_GENES, NODE_PARAMS, CONN_PARAMS
 
 def teacher_weights_to_target(params):
-    """Flatten teacher weights into 1 target vector."""
+    """Flatten teacher weights into 1 target vector. Match CPPN output order."""
     return jnp.concatenate([
         params['w_ih'].ravel(), params['w_ho'].ravel(),
-        params['w_pred'].ravel()])
+        params['w_pred'].ravel(),
+        jnp.zeros(46*10 + 16*10)])  # teacher ko có w_spat/w_thought → zeros
 
 def genome_to_weights(nodes, conns):
     """Run CPPN → policy weights → flatten."""
     pol = genome_to_policy(nodes, conns)
     return jnp.concatenate([
-        pol['w_ih'].ravel(), pol['w_ho'].ravel(), pol['w_pred'].ravel()])
+        pol['w_ih'].ravel(), pol['w_ho'].ravel(),
+        pol['w_pred'].ravel(), pol['w_spat'].ravel(),
+        pol['w_thought'].ravel()])
 
 @jit
 def compression_loss(nodes, conns, target):

@@ -63,23 +63,26 @@ def make_eval_batch(flag_spatial=False, flag_planning=False, flag_diag=False, fl
 
             def step(carry, _):
                 pol, s, thought_state = carry
-                obs_i = s.obs
+                obs_i = s.obs  # always 29-dim from env
 
-                # Inner speech
-                if flag_thought:
-                    h = jnp.tanh(obs_i @ pol['w_ih'][:-1] + pol['w_ih'][-1])
-                    new_thought = jnp.tanh(h[:, None] * jnp.ones(TOKEN_DIM)[None, :]).mean(0)
-                    thought_state = thought_state * thought_decay + new_thought * (1 - thought_decay)
-                    obs_i = jnp.concatenate([obs_i, thought_state * thought_scale])
-
-                # Spatial
+                # Spatial encoding (no concat — passed to policy_forward)
                 if flag_spatial:
                     x = s.pipeline_state.x.pos[0, 0]
                     y = s.pipeline_state.x.pos[0, 1]
                     spat_enc = spatial_encoding(x, y, scale=jax.nn.sigmoid(sp[0]))
-                    obs_i = jnp.concatenate([obs_i, spat_enc])
+                else:
+                    spat_enc = None
 
-                a, pred_n = policy_forward(pol, obs_i)
+                # Inner speech
+                if flag_thought:
+                    h_t = jnp.tanh(obs_i @ pol['w_ih'][:-1] + pol['w_ih'][-1])
+                    new_thought = jnp.tanh(h_t[:, None] * jnp.ones(TOKEN_DIM)[None, :]).mean(0)
+                    thought_state = thought_state * thought_decay + new_thought * (1 - thought_decay)
+                    ts = thought_state * thought_scale
+                else:
+                    ts = None
+
+                a, pred_n = policy_forward(pol, obs_i, spat_enc=spat_enc, thought_state=ts)
                 s2 = env.step(s, a)
                 s2 = s2.replace(obs=jnp.nan_to_num(s2.obs, 0.))
 
