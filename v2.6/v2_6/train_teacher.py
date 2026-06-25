@@ -29,18 +29,16 @@ def teacher_loss(params, obs_seq, action_seq, next_obs_seq):
 
 @jit
 def rollout(key, params, n_steps=200):
-    """JIT-compiled rollout with done tracking. Returns full arrays + alive scalar."""
-    def step(carry, _):
-        s, done_flag = carry
+    """JIT-compiled rollout. Returns full arrays + alive count."""
+    def step(s, _):
         a, pred_n = policy_forward(params, s.obs)
         s2 = env.step(s, a)
         s2 = s2.replace(obs=jnp.nan_to_num(s2.obs, 0.))
-        done_flag = done_flag | (s2.done > 0.5)
-        return (s2, done_flag), (s.obs, a, s2.obs)
+        return s2, (s.obs, a, s2.obs, s2.done)
     init_state = env.reset(key)
-    (_, done_flag), (obs, act, nxt) = lax.scan(step, (init_state, False), jnp.arange(n_steps))
-    fd = jnp.argmax(done_flag > 0.5)
-    alive = jnp.where(jnp.any(done_flag), fd + 1, n_steps)
+    _, (obs, act, nxt, dones) = lax.scan(step, init_state, jnp.arange(n_steps))
+    fd = jnp.argmax(dones > 0.5)
+    alive = jnp.where(jnp.any(dones > 0.5), fd + 1, n_steps)
     return obs, act, nxt, alive
 
 def train_teacher(n_episodes=500, lr=0.001, seed=3072):
