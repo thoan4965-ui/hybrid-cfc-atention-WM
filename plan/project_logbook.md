@@ -3825,3 +3825,105 @@ Các bước implement V2.6 v1, mỗi bước hoàn thành trong 1-2 ngày:
 3. **Valley of death sâu — toán học landscape:** L=3 impossibility với K·μ^L, pit stop mechanism, fitness landscape topology.
 4. **Consciousness / metacognition:** từ V2.9.1 đến "agent biết nó có gen" cách bao xa? Major transitions in evolution (Szathmáry & Maynard Smith). Paper 2025 "Consciousness as major transition."
 
+---
+
+## 2026-06-25 (production push) — MAX_GENES 200 + Teacher fix + Production config
+
+**Changelog:**
+- **MAX_GENES 100 → 200** (genome.py:5) — genome 1600 floats → compress loss từ 0.24→~0.10 → VIP fitness dự kiến 51→~85
+- **Teacher rollout done tracking** (train_teacher.py) — trước đây `lax.scan` ko check `done`, avg_steps luôn 200 (bug metric). Fix: carry `(s, done_count)`, slice obs[:alive] → avg_steps hiển thị thật.
+- **Mod log** (main.py:483) — từ 4 agent lên 32 agent sample → ổn định hơn
+- **`--run_id` system** — checkpoint riêng `checkpoints/v2.9/run{1,2,3}/`. HF upload/download theo run_id. VIP genome upload `run0/vip_genome.npz`.
+- **Error handling** — VIP init crash hẳn nếu ko tìm thấy genome, kèm message "run teacher mode first"
+
+**Lessons rút ra cho V2.9.x production:**
+1. **Compress ratio:** Genome cần ≥ target float count. 100×8 cho 670 teacher weights + 620 zero guides = quá thấp (loss 0.24). 200×8 đủ.
+2. **Rollout done tracking:** `lax.scan` chạy đủ iteration bất kể done — phải track trong carry.
+3. **JIT patterns:**
+   - `for k in pol` → `for key in pol` (k overwrite bug)
+   - `int()` trên traced array → `.astype(jnp.int32)`
+   - `if` trên bool traced → `jnp.where` hoặc closure factory
+   - `dict` trong scan → match pytree, thêm `w_spat/w_thought` vào hebbian
+4. **Feature flags:** `make_eval_batch` factory (flags as closure) → JIT-safe. Ko pass flags như positional arg.
+5. **Teacher 24ph → 2ph:** Python loop → `lax.scan`. Tương tự GA eval_batch pattern.
+
+**Production config chốt:**
+- Teacher: 500 ep + 2000 compress → genome VIP
+- Run 1: 2000 gen × 1024 pop, N=2, ko flag
+- Run 2: 2000 gen × 1024 pop, N=5, --spatial --planning --thought
+- Run 3: 2000 gen × 1024 pop, N=6, +--diagnosis
+- Resume: checkpoint mỗi 500 gen + HF backup
+- Total time: ~20h T4, split 3 sessions
+
+## V2.9.x Bug Log (complete — 24/06→25/06)
+
+Mỗi bug gồm: triệu chứng → root cause → fix. Dùng để tra cứu khi gặp lại.
+
+### JIT & LAX.SCAN
+
+| # | Bug | Root cause | Fix | File:Line |
+|---|---|---|---|---|
+| 1 | `TracerBoolConversionError: if module_on[mod]` | Python `if` trên traced array | `mod_on * cppn_query` thay vì `if not module_on: continue` | cppn.py:76 |
+| 2 | `TracerBoolConversionError: if flag_planning` | `flag_*` là traced args trong `@jit` function | `make_eval_batch` factory — flags là Python closure, ko phải JIT args | main.py:35 |
+| 3 | `TracerBoolConversionError: if use_elite` | `e_fit > mirror_select` là traced bool | `jnp.where` gating thay vì Python `if` | main.py:119 |
+| 4 | `scan body carry mismatch (4 keys vs 6 keys)` | `hebbian_update` trả 4 keys, `genome_to_policy` trả 6 | Thêm `w_spat, w_thought` vào hebbian return | hebbian.py:13-15 |
+| 5 | `scan body carry mismatch (6 keys vs 4 keys)` | `for k in pol` → `k = "w_thought"` overwrite PRNG key | Đổi `for key in pol` | main.py:102 |
+| 6 | `random.fold_in("w_thought", ...)` | Biến `k` bị string overwrite từ loop | Same as #5 | main.py:107 |
+
+### SHAPE & TRACED VALUES
+
+| # | Bug | Root cause | Fix | File:Line |
+|---|---|---|---|---|
+| 7 | `Cannot broadcast (7,) to ()` | `nodes[0:1]` giữ batch dim → `nodes[ci,5]` shape (7,) | `genome_to_policy` auto squeeze 3D→2D | cppn.py:84-86 |
+| 8 | `dot_general shape (19,) vs (46,)` | `grid_encoding` chỉ trả 3-dim (thiếu phases) | Thêm `jnp.linspace(0, 2π, 10)` → 30-dim | cppn.py:64-68 |
+| 9 | `int()` traced fail | `int(jax.nn.sigmoid(pl[0]))` — traced → `int()` ko dùng được | `int()` ko fix được — cần fixed B_MAX=10 | main.py:48-49 |
+| 10 | `float()` / `int()` trên vector `(pop_size,)` | `int(50 + 150 * sigmoid(state['diags'][:, 0]))` — shape (64,) | `diag_0 = state['diags'][0]` → scalar indexing | main.py:348 |
+| 11 | `IndexError: dynamic slice` | `obs[:alive]` trong `@jit` — JAX ko support | Trả `alive` scalar, ko slice | train_teacher.py:44 |
+
+### TEACHER TRAINING
+
+| # | Bug | Hiện tượng | Fix | File:Line |
+|---|---|---|---|---|
+| 12 | avg_steps luôn 200 | `rollout` ko check `done` | Thêm `dones` vào scan output, `argmax` tìm first death | train_teacher.py:31-44 |
+| 13 | avg_steps luôn 1 | `done_flag` là carry scalar → collap | Track `s2.done` qua scan output array, ko carry | train_teacher.py:31-44 |
+| 14 | Teacher 24 phút | Python for-loop rollout | `lax.scan` JIT compile | train_teacher.py:30-41 |
+| 15 | Duplicate import | `genome_to_policy` imported 2 lần | Xóa 1 dòng | train_teacher.py:5 |
+| 16 | Dead code | `loss_and_grad` compute + bỏ | Xóa | train_teacher.py:60-61 |
+
+### ARCHITECTURE
+
+| # | Bug | Root cause | Fix | File:Line |
+|---|---|---|---|---|
+| 17 | Genes 100-199 invisible | `cp`n_query dùng `jnp.zeros(100)` — MAX_GENES=200 | `jnp.zeros(MAX_GENES)` + `jnp.arange(MAX_GENES)` | `cppn.py:9,18` |
+| 18 | VIP compress loss 0.24 | Genome 100×8 quá nhỏ cho 670+620 target floats | MAX_GENES 100→200 | genome.py:5 |
+| 19 | VIP genome ko upload HF | Teacher chỉ save local | Teacher mode upload + VIP init HF fallback | main.py teacher block |
+| 20 | Run checkpoint bị đè | Cả 3 run save `cp_{gen}.npz` | `--run_id` tách directory | main.py:154-159 |
+| 21 | Mod log sample 4 agents quá ít | `state['regs'][:4, :8]` | `[:32, :8]` | main.py:483 |
+| 22 | Crop không bền vững | grid vs place ko match dim | `concatenate` + correct dims | cppn.py:77-78 |
+| 23 | Elite data None→tuple | `elite_data=None` gen 0, tuple gen 1+ → JIT recompile | Luôn pass `(zeros(1), 0.)` | main.py:268,448 |
+
+### QUICK REFERENCE — JAX rules for V2.9.x
+
+```python
+# RULE 1: Ko dùng Python if trên traced arrays
+# Sai: if module_on[mod]: continue
+# Đúng: mod_on * cppn_query(...)
+
+# RULE 2: Ko dùng int()/float() trên traced values
+# Sai: int(jax.nn.sigmoid(x))
+# Đúng: fixed dim + mask/pad
+
+# RULE 3: Flags trong JIT function phải là closure
+# Sai: def eval_batch(..., flag_*)
+# Đúng: make_eval_batch(flag_*) → def eval_batch(...flags là closure...)
+
+# RULE 4: lax.scan carry phải match pytree
+# carry input dict 6 keys → carry output cũng 6 keys
+
+# RULE 5: Ko dynamic slice trong JIT
+# Sai: return arr[:alive]
+# Đúng: return arr + alive scalar
+
+# RULE 6: Scan output array > carry scalar cho tracking
+# Sai: carry done_flag scalar → collap
+# Đúng: scan output done array → argmax works
