@@ -59,7 +59,8 @@ def spatial_encoding(x, y, scale=1.0):
 @jit
 def genome_to_policy(nodes, conns, regs=None):
     """Modular: all nodes visible, only connections per module.
-       regs (16,): first 8 = module enable bits (sigmoid > 0.5 = on)."""
+       regs (16,): first 8 = module enable bits (sigmoid > 0.5 = on).
+       JIT-safe: uses jnp.where for gating, no Python if on traced arrays."""
     has_mod = nodes.shape[-1] >= 8
     w_ih = jnp.zeros((30, 10)); w_ho = jnp.zeros((10, 8))
     w_pred = jnp.zeros((10, 29)); w_dopa = jnp.zeros(3)
@@ -73,17 +74,16 @@ def genome_to_policy(nodes, conns, regs=None):
         n_active = 8
 
     for mod in range(8):
-        if not module_on[mod]:
-            continue
         if has_mod:
             mask_c = ~jnp.isnan(conns[:, 0]) & (conns[:, 6] == mod) & (conns[:, 4] > 0.5)
             mc = jnp.where(mask_c[:, None], conns, jnp.nan)
         else:
             mc = conns
-        w_ih += cppn_query(base_nodes, mc, SI).reshape(30, 10)
-        w_ho += cppn_query(base_nodes, mc, SH).reshape(10, 8)
-        w_pred += cppn_query(base_nodes, mc, SP).reshape(10, 29)
-        w_dopa += cppn_query(base_nodes, mc, SD)
+        mod_on = module_on[mod]
+        w_ih += mod_on * cppn_query(base_nodes, mc, SI).reshape(30, 10)
+        w_ho += mod_on * cppn_query(base_nodes, mc, SH).reshape(10, 8)
+        w_pred += mod_on * cppn_query(base_nodes, mc, SP).reshape(10, 29)
+        w_dopa += mod_on * cppn_query(base_nodes, mc, SD)
     return {'w_ih': w_ih / n_active, 'w_ho': w_ho / n_active,
             'w_pred': w_pred / n_active, 'w_dopa': w_dopa / n_active}
 
