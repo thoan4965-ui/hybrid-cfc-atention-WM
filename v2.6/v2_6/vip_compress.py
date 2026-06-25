@@ -26,7 +26,7 @@ def compression_loss(nodes, conns, target):
     pred = genome_to_weights(nodes, conns)
     return jnp.mean((pred - target) ** 2)
 
-def compress_teacher(teacher_params, n_opt_steps=500, lr=0.01, seed=3072,
+def compress_teacher(teacher_params, n_opt_steps=2000, lr=0.01, seed=3072,
                      pop_size=1):
     """Optimize genome to minimize ||CPPN(genome) - teacher_weights||²."""
     target = teacher_weights_to_target(teacher_params)

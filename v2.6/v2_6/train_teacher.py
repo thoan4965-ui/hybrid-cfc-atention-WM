@@ -40,8 +40,8 @@ def rollout(key, params, n_steps=200):
     _, (obs, act, nxt) = lax.scan(step, init_state, jnp.arange(n_steps))
     return obs, act, nxt
 
-def train_teacher(n_episodes=100, lr=0.001, seed=3072):
-    """Train teacher policy with gradient + curiosity. ~2-3 phút cho 200 ep."""
+def train_teacher(n_episodes=500, lr=0.001, seed=3072):
+    """Train teacher policy with gradient + curiosity. ~7 phút cho 500 ep."""
     key = random.PRNGKey(seed)
     params = init_teacher(key)
 
