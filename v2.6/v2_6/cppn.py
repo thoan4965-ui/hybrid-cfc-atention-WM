@@ -1,4 +1,4 @@
-"""CPPN: policy + prediction + modular (8 modules) + dopamine."""
+"""CPPN: policy + prediction + modular (8 modules) + dopamine + regulatory gating."""
 import jax, jax.numpy as jnp
 from jax import lax, vmap, jit
 
@@ -37,13 +37,24 @@ def _sub():
 SI, SH, SP, SD = _sub()
 
 @jit
-def genome_to_policy(nodes, conns):
-    """Modular: all nodes visible, only connections per module."""
+def genome_to_policy(nodes, conns, regs=None):
+    """Modular: all nodes visible, only connections per module.
+       regs (16,): first 8 = module enable bits (sigmoid > 0.5 = on)."""
     has_mod = nodes.shape[-1] >= 8
     w_ih = jnp.zeros((30, 10)); w_ho = jnp.zeros((10, 8))
     w_pred = jnp.zeros((10, 29)); w_dopa = jnp.zeros(3)
     base_nodes = nodes[..., :7]
+
+    if regs is not None:
+        module_on = jax.nn.sigmoid(regs[:8]) > 0.5
+        n_active = jnp.maximum(jnp.sum(module_on), 1)
+    else:
+        module_on = jnp.ones(8, dtype=jnp.bool_)
+        n_active = 8
+
     for mod in range(8):
+        if not module_on[mod]:
+            continue
         if has_mod:
             mask_c = ~jnp.isnan(conns[:, 0]) & (conns[:, 6] == mod) & (conns[:, 4] > 0.5)
             mc = jnp.where(mask_c[:, None], conns, jnp.nan)
@@ -53,7 +64,8 @@ def genome_to_policy(nodes, conns):
         w_ho += cppn_query(base_nodes, mc, SH).reshape(10, 8)
         w_pred += cppn_query(base_nodes, mc, SP).reshape(10, 29)
         w_dopa += cppn_query(base_nodes, mc, SD)
-    return {'w_ih': w_ih / 8, 'w_ho': w_ho / 8, 'w_pred': w_pred / 8, 'w_dopa': w_dopa / 8}
+    return {'w_ih': w_ih / n_active, 'w_ho': w_ho / n_active,
+            'w_pred': w_pred / n_active, 'w_dopa': w_dopa / n_active}
 
 def policy_forward(params, obs):
     h = jnp.tanh(obs @ params['w_ih'][:-1] + params['w_ih'][-1])

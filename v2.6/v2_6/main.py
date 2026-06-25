@@ -5,7 +5,8 @@ jax.config.update('jax_default_matmul_precision', 'high')
 from jax import random, jit, vmap, lax
 from v2_6.genome import (init_pop, mutate, crossover_innov, mutate_tags,
                           crossover_tags, init_dopas, mutate_dopas, crossover_dopas,
-                          MAX_GENES, NODE_PARAMS, CONN_PARAMS, TAG_DIM)
+                          init_regs, mutate_regs, crossover_regs,
+                          MAX_GENES, NODE_PARAMS, CONN_PARAMS, TAG_DIM, REG_DIM)
 from v2_6.cppn import genome_to_policy, policy_forward
 from v2_6.env_ant import NoRewardAnt
 from v2_6.ae import init_ae, train_ae, encode, decode
@@ -26,9 +27,9 @@ def pred_loss(w_ih, w_pred, obs, target):
     return jnp.mean((target - pred) ** 2)
 
 @jit
-def eval_batch(nodes, conns, dopas, keys):
-    def single(n, c, d, k):
-        pol = genome_to_policy(n, c)
+def eval_batch(nodes, conns, dopas, regs, keys):
+    def single(n, c, d, r, k):
+        pol = genome_to_policy(n, c, regs=r)
         pol['w_dopa'] = d
         d0 = d
         def step(ps, _):
@@ -63,13 +64,14 @@ def eval_batch(nodes, conns, dopas, keys):
         final_energy = jnp.nan_to_num(s_final.info['energy'], nan=0.)
         dopa = jnp.nan_to_num(pol['w_dopa'], 0.)
         return (alive, dopa), jnp.concatenate([alive[None], final_energy[None], jnp.mean(ex, 0)])
-    (alive_arr, dopa_arr), r = vmap(single)(nodes, conns, dopas, keys)
+    (alive_arr, dopa_arr), r = vmap(single)(nodes, conns, dopas, regs, keys)
     return alive_arr, dopa_arr, r
 
 def save_checkpoint(state, ae, gen, curve, path, hf_api=None, hf_repo=None):
     np.savez(path,
         nodes=np.array(state['nodes']), conns=np.array(state['conns']),
-        tags=np.array(state['tags']), dopas=np.array(state['dopas']), innov=state['innov'],
+        tags=np.array(state['tags']), dopas=np.array(state['dopas']),
+        regs=np.array(state['regs']), innov=state['innov'],
         ae_We=np.array(ae['We']), ae_be=np.array(ae['be']),
         ae_Wd=np.array(ae['Wd']), ae_bd=np.array(ae['bd']),
         gen=gen, curve=np.array(curve))
@@ -87,6 +89,8 @@ def load_checkpoint(path):
              'pop_size': d['nodes'].shape[0]}
     if 'dopas' in d:
         state['dopas'] = jnp.array(d['dopas'])
+    if 'regs' in d:
+        state['regs'] = jnp.array(d['regs'])
     ae = {'We': jnp.array(d['ae_We']), 'be': jnp.array(d['ae_be']),
           'Wd': jnp.array(d['ae_Wd']), 'bd': jnp.array(d['ae_bd'])}
     return state, ae, int(d['gen']), list(d['curve'])
@@ -118,6 +122,8 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None, vip_init=None):
                 state['dopas'] = jnp.concatenate([old3, new2], axis=1)
             else:
                 state['dopas'] = init_dopas(random.PRNGKey(seed), state['pop_size'])
+        if 'regs' not in state or state['regs'].shape[1] < REG_DIM:
+            state['regs'] = init_regs(random.PRNGKey(seed + 2), state['pop_size'])
         if state['nodes'].shape[-1] < NODE_PARAMS:
             pad = jnp.zeros((state['nodes'].shape[0], MAX_GENES, NODE_PARAMS - state['nodes'].shape[-1]))
             state['nodes'] = jnp.concatenate([state['nodes'], pad], axis=-1)
@@ -127,10 +133,8 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None, vip_init=None):
     else:
         ae_key, ga_key = random.split(key)
         if vip_init:
-            # V2.9.2 VIP Init: load compressed genome from teacher
             print(f"VIP init: loading genome from {vip_init}", flush=True)
             vip_gen = load_vip_genome(vip_init)
-            # Init population from VIP genome with small noise
             k_exp = random.PRNGKey(seed + 42)
             nodes = jnp.tile(vip_gen['nodes'], (pop_size, 1, 1))
             conns = jnp.tile(vip_gen['conns'], (pop_size, 1, 1))
@@ -141,32 +145,39 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None, vip_init=None):
             state = {'nodes': nodes, 'conns': conns, 'tags': jnp.zeros((pop_size, TAG_DIM)),
                      'innov': 6, 'pop_size': pop_size}
             state['dopas'] = init_dopas(ga_key, pop_size)
+            state['regs'] = init_regs(random.PRNGKey(seed + 1), pop_size)
             ae = init_ae(ae_key)
             gen_start = 0; curve = []
             n4 = vmap(lambda i: random.PRNGKey(i))(jnp.arange(4))
             f4, _, _ = eval_batch(state['nodes'][:4], state['conns'][:4],
-                                  state['dopas'][:4], n4)
+                                  state['dopas'][:4], state['regs'][:4], n4)
             print(f"V2.9.2 VIP init: {n_gen}gen x {pop_size}pop, fitness pre-check: {float(jnp.max(f4)):.0f}", flush=True)
         else:
             state = init_pop(ga_key, pop_size)
             state['dopas'] = init_dopas(ga_key, pop_size)
+            state['regs'] = init_regs(random.PRNGKey(seed + 1), pop_size)
             ae = init_ae(ae_key)
             gen_start = 0; curve = []
             n4 = vmap(lambda i: random.PRNGKey(i))(jnp.arange(4))
-            f4, _, _ = eval_batch(state['nodes'][:4], state['conns'][:4], state['dopas'][:4], n4)
+            f4, _, _ = eval_batch(state['nodes'][:4], state['conns'][:4],
+                                  state['dopas'][:4], state['regs'][:4], n4)
             print(f"V2.9.1: {n_gen}gen x {pop_size}pop", flush=True)
 
     t0 = time.time()
     k0 = random.PRNGKey(gen_start * 3)
     for g in range(gen_start, n_gen):
         k0 = random.PRNGKey(g * 3)
-        fs, dopas, rs = [], [], []
+        fs, dopas, regss, rs = [], [], [], []
         for ri in range(1):
             kk = random.split(random.fold_in(k0, ri), pop_size)
-            f_arr, d_arr, r = eval_batch(state['nodes'], state['conns'], state['dopas'], kk)
+            f_arr, d_arr, r = eval_batch(state['nodes'], state['conns'],
+                                          state['dopas'], state['regs'], kk)
             fs.append(f_arr); dopas.append(d_arr); rs.append(r)
+            # Track regs mean for logging
+            regss.append(jnp.mean(state['regs'], axis=0))
         f = jnp.nan_to_num(f_arr, nan=0.)
         dopa_mean = jnp.nan_to_num(jnp.mean(jnp.stack(dopas), axis=(0,1)), nan=0.)
+        regs_mean = jnp.nan_to_num(jnp.mean(jnp.stack(regss), axis=0), nan=0.)
         r = rs[0]
         final_e = jnp.nan_to_num(r[:, 1], nan=0.) if r.ndim > 1 else jnp.zeros(pop_size)
         ex_raw = r[:, 2:] if r.ndim > 1 and r.shape[1] > 2 else jnp.zeros((pop_size, 37))
@@ -217,6 +228,11 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None, vip_init=None):
         dc = jnp.zeros((pop_size, 5))
         dc = dc.at[0::2].set(cd_batch(state['dopas'][p1_arr], state['dopas'][p2_arr], kt_arr))
         dc = dc.at[1::2].set(cd_batch(state['dopas'][p2_arr], state['dopas'][p1_arr], ks_arr))
+        # Regulatory genome crossover
+        cr_batch = vmap(crossover_regs)
+        rc = jnp.zeros((pop_size, REG_DIM))
+        rc = rc.at[0::2].set(cr_batch(state['regs'][p1_arr], state['regs'][p2_arr], kt_arr))
+        rc = rc.at[1::2].set(cr_batch(state['regs'][p2_arr], state['regs'][p1_arr], ks_arr))
         td_arr = vmap(lambda p1, p2: jnp.tile(nt[p1] - nt[p2], 7)[:MAX_GENES])(p1_arr, p2_arr)
         delta = jnp.zeros((np2, MAX_GENES, NODE_PARAMS)).at[:, :, 5].set(0.01 * td_arr)
         cn = cn.at[0::2].set(cn[0::2] + delta)
@@ -225,18 +241,23 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None, vip_init=None):
         ni = int(ni_jit)
         tc = mutate_tags(tc, k2, noise=.03*mr)
         dc = mutate_dopas(dc, k2, noise=.03*mr)
+        rc = mutate_regs(rc, k2, noise=.03*mr)
         top2 = jnp.argsort(f_total)[-2:]
         for j in range(2):
             cn = cn.at[j].set(state['nodes'][top2[j]]); cc = cc.at[j].set(state['conns'][top2[j]])
             tc = tc.at[j].set(state['tags'][top2[j]])
             dc = dc.at[j].set(state['dopas'][top2[j]])
-        state['nodes'] = cn; state['conns'] = cc; state['tags'] = tc; state['dopas'] = dc; state['innov'] = ni
+            rc = rc.at[j].set(state['regs'][top2[j]])
+        state['nodes'] = cn; state['conns'] = cc; state['tags'] = tc
+        state['dopas'] = dc; state['regs'] = rc; state['innov'] = ni
 
         if (g + 1) % 20 == 0:
             dt = time.time() - t0; eta = dt/(g-gen_start+1)*(n_gen-g-1)/60
+            n_active = int(jnp.sum(jax.nn.sigmoid(state['regs'][:4, :8]) > 0.5).mean())
             print(f"G{g+1}: max={curve[-1][0]:.0f} mean={curve[-1][1]:.0f}"
                   f" rmx={float(jnp.max(f)):.0f} rmn={float(jnp.mean(f)):.0f}"
                   f" ae={ae_loss:.4f} dopa={dopa_mean[0]:.2f}/{dopa_mean[1]:.2f}/{dopa_mean[2]:.2f}"
+                  f" mod={n_active}"
                   f" [{dt:.0f}s ETA {eta:.0f}m]", flush=True)
 
         if (g + 1) % 500 == 0 or g == n_gen - 1:
@@ -247,7 +268,8 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None, vip_init=None):
     ffs = []
     for ri in range(1):
         kk = random.split(random.fold_in(k0, ri), pop_size)
-        ff, _, _ = eval_batch(state['nodes'], state['conns'], state['dopas'], kk)
+        ff, _, _ = eval_batch(state['nodes'], state['conns'],
+                               state['dopas'], state['regs'], kk)
         ffs.append(ff)
     ff = jnp.nan_to_num(ff, nan=0.)
     bi = int(jnp.argmax(ff))
@@ -256,7 +278,8 @@ def run(n_gen=5000, pop_size=1024, seed=3072, resume_path=None, vip_init=None):
     ts = time.strftime("%m%d_%H%M")
     np.savez(f'v2_6/results/v291_{ts}.npz',
         curve=np.array(curve), best_nodes=np.array(state['nodes'][bi]),
-        best_conns=np.array(state['conns'][bi]), best_fitness=float(jnp.max(ff)),
+        best_conns=np.array(state['conns'][bi]), best_regs=np.array(state['regs'][bi]),
+        best_fitness=float(jnp.max(ff)),
         best_total_fitness=float(curve[-1][0]))
     return {'curve': jnp.array(curve), 'best_nodes': state['nodes'][bi],
             'best_conns': state['conns'][bi], 'best_fitness': float(jnp.max(ff))}

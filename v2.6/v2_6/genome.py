@@ -1,6 +1,6 @@
 """Genome + JIT mutate + vmap crossover + Tag + Dopamine(5) + Module + Non-coding + Dup."""
 import jax, jax.numpy as jnp
-from jax import random, jit, vmap, lax
+from jax import random, jit, vmap, lax, nn
 
 MAX_GENES = 100; NODE_PARAMS = 8; CONN_PARAMS = 8; TAG_DIM = 16
 
@@ -119,3 +119,27 @@ def mutate_dopas(dopas, key, noise=0.3):
 def crossover_dopas(d1, d2, key):
     pick = random.bernoulli(key, shape=(5,))
     return jnp.where(pick, d1, d2)
+
+# === Regulatory — 3rd genome (16 floats per agent: 8 module enable + 8 per-module mutation rate) ===
+REG_DIM = 16
+REG_MOD_DIM = 8
+
+def init_regs(key, pop_size):
+    return random.normal(key, (pop_size, REG_DIM)) * 0.5
+
+@jit
+def mutate_regs(regs, key, noise=0.3):
+    return regs + noise * random.normal(key, regs.shape)
+
+@jit
+def crossover_regs(r1, r2, key):
+    pick = random.bernoulli(key, shape=(REG_DIM,))
+    return jnp.where(pick, r1, r2)
+
+def regs_module_enable(regs):
+    """First 8 floats: sigmoid > 0.5 → module on/off."""
+    return jax.nn.sigmoid(regs[:, :REG_MOD_DIM]) > 0.5
+
+def regs_module_rate(regs):
+    """Next 8 floats: sigmoid → per-module mutation rate scale [0.1, 2.0]."""
+    return 0.1 + 1.9 * jax.nn.sigmoid(regs[:, REG_MOD_DIM:])
