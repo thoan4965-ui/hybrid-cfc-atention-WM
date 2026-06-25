@@ -29,19 +29,19 @@ def teacher_loss(params, obs_seq, action_seq, next_obs_seq):
 
 @jit
 def rollout(key, params, n_steps=200):
-    """JIT-compiled rollout with done tracking."""
+    """JIT-compiled rollout with done tracking. Returns full arrays + alive scalar."""
     def step(carry, _):
-        s, done_count = carry
+        s, done_flag = carry
         a, pred_n = policy_forward(params, s.obs)
         s2 = env.step(s, a)
         s2 = s2.replace(obs=jnp.nan_to_num(s2.obs, 0.))
-        died = s2.done > 0.5
-        done_count = jnp.where(done_count < 0, jnp.where(died, s2.info['step'].astype(jnp.float32), done_count), done_count)
-        return (s2, done_count), (s.obs, a, s2.obs)
+        done_flag = done_flag | (s2.done > 0.5)
+        return (s2, done_flag), (s.obs, a, s2.obs)
     init_state = env.reset(key)
-    (final_state, done_step), (obs, act, nxt) = lax.scan(step, (init_state, -1.), jnp.arange(n_steps))
-    alive = jnp.where(done_step < 0, n_steps, done_step.astype(jnp.int32))
-    return obs[:alive], act[:alive], nxt[:alive]
+    (_, done_flag), (obs, act, nxt) = lax.scan(step, (init_state, False), jnp.arange(n_steps))
+    fd = jnp.argmax(done_flag > 0.5)
+    alive = jnp.where(jnp.any(done_flag), fd + 1, n_steps)
+    return obs, act, nxt, alive
 
 def train_teacher(n_episodes=500, lr=0.001, seed=3072):
     """Train teacher policy with gradient + curiosity."""
@@ -49,17 +49,17 @@ def train_teacher(n_episodes=500, lr=0.001, seed=3072):
     params = init_teacher(key)
 
     # JIT compile rollout once
-    _, _, _ = rollout(random.fold_in(key, 0), params)
+    _, _, _, _ = rollout(random.fold_in(key, 0), params)
 
     for ep in range(n_episodes):
         k_ep = random.fold_in(key, ep)
-        obs, act, nxt = rollout(k_ep, params)
+        obs, act, nxt, alive = rollout(k_ep, params)
         loss, grads = jax.value_and_grad(
             lambda p: teacher_loss(p, obs, act, nxt))(params)
         params = {k: params[k] - lr * jnp.clip(grads[k], -0.5, 0.5)
                   for k in params}
         if (ep + 1) % 20 == 0:
-            obs_e, _, _ = rollout(random.fold_in(key, ep + 9999), params)
-            avg_steps = float(obs_e.shape[0])
+            _, _, _, alive_e = rollout(random.fold_in(key, ep + 9999), params)
+            avg_steps = float(alive_e)
             print(f"  Teacher ep{ep+1}: loss={float(loss):.4f} avg_steps={avg_steps:.0f}")
     return params

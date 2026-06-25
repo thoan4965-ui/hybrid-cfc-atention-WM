@@ -1,12 +1,13 @@
 """CPPN: policy + prediction + modular (8 modules) + dopamine + regulatory + spatial + thought projections."""
 import jax, jax.numpy as jnp
 from jax import lax, vmap, jit
+from v2_6.genome import MAX_GENES
 
 def cppn_query(nodes, conns, coords):
     n_nodes = jnp.nan_to_num(nodes, 0); n_conns = jnp.nan_to_num(conns, 0)
     is_node = ~jnp.isnan(nodes[:, 0]); is_conn = ~jnp.isnan(conns[:, 0]) & (conns[:, 4] > 0.5)
     def eval_one(coord):
-        v = jnp.zeros(100)
+        v = jnp.zeros(MAX_GENES)
         for ci in range(4): v = v.at[ci].set(coord[ci] + jnp.where(is_node[ci], nodes[ci,5], 0.))
         def sf(vc, ci):
             v,_=vc; has=is_conn[ci]
@@ -15,7 +16,7 @@ def cppn_query(nodes, conns, coords):
             update = jnp.where(has, conns[ci,3]*jnp.tanh(v[si])+nodes[di,5], 0.)
             v=v.at[di].add(update)
             return(v,ci),None
-        (v,_),_=lax.scan(sf,(v,0),jnp.arange(100))
+        (v,_),_=lax.scan(sf,(v,0),jnp.arange(MAX_GENES))
         last=jnp.clip(jnp.sum(is_node)-1,0).astype(jnp.int32)
         return jnp.tanh(v[last])
     return vmap(eval_one)(coords)
