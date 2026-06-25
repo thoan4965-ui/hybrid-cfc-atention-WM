@@ -115,10 +115,11 @@ def make_eval_batch(flag_spatial=False, flag_planning=False, flag_diag=False, fl
                     errs = vmap(rollout_one)(acts)
                     a = acts[jnp.argmin(errs), 0]
 
-                # Elite imitation: weight-level alignment
-                if use_elite and e_fit > mirror_select and e_wih.shape[0] > 1:
-                    align_loss = mirror_lr * jnp.mean((pol['w_ih'] - e_wih) ** 2)
-                    pol['w_ih'] = pol['w_ih'] - jnp.clip(align_loss * (pol['w_ih'] - e_wih) * 0.01, -0.005, 0.005)
+                # Elite imitation: weight-level alignment (jnp.where gate, JIT-safe)
+                elite_cond = (e_fit > mirror_select) & (e_wih.shape[0] > 1)
+                align_loss = mirror_lr * jnp.mean((pol['w_ih'] - e_wih) ** 2)
+                del_w = jnp.clip(align_loss * (pol['w_ih'] - e_wih) * 0.01, -0.005, 0.005)
+                pol['w_ih'] = jnp.where(elite_cond, pol['w_ih'] - del_w, pol['w_ih'])
 
                 return (pol, s2, thought_state), (s2.done, jnp.concatenate([obs_i, a, s2.info['energy'][None]]))
             ts_init = jnp.zeros(TOKEN_DIM) if flag_thought else jnp.zeros(1)
